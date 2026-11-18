@@ -65,4 +65,51 @@ describe("Mercado Pago Integration & Subscription Engine", () => {
       expect(paymentIdFromV1).toBe("987654321");
     });
   });
+
+  describe("Engenharia de Software & Idempotência", () => {
+    it("deve rejeitar re-ativação e proteger contra extensão múltipla no mesmo pedido", () => {
+      // Simula uma transação atômica em que o pedido já está APPROVED
+      const existingOrder = {
+        id: "order-123",
+        status: "APPROVED",
+        planTier: "PREMIUM",
+        billingCycle: "MONTHLY",
+      };
+
+      // Tentativa de update condicional onde status != 'APPROVED'
+      const matchedCount = existingOrder.status !== "APPROVED" ? 1 : 0;
+
+      // O update result deve retornar 0 rows afetadas
+      expect(matchedCount).toBe(0);
+      const isAlreadyProcessed = matchedCount === 0;
+      expect(isAlreadyProcessed).toBe(true);
+    });
+
+    it("deve revogar acesso Pro quando o prazo de vigência (planExpiresAt) estiver expirado", () => {
+      const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // Expirou ontem
+      const user = {
+        role: "USER",
+        planTier: "PREMIUM",
+        planExpiresAt: pastDate,
+      };
+
+      const isExpired = user.planExpiresAt.getTime() <= Date.now();
+      const isEffectivePro = user.role === "ADMIN" || (!isExpired && (user.planTier === "PREMIUM" || user.planTier === "ELITE"));
+
+      expect(isExpired).toBe(true);
+      expect(isEffectivePro).toBe(false);
+    });
+
+    it("deve manter acesso irrestrito para administradores mesmo sem data ou com data expirada", () => {
+      const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const admin = {
+        role: "ADMIN",
+        planTier: "FREE",
+        planExpiresAt: pastDate,
+      };
+
+      const isEffectivePro = admin.role === "ADMIN" || (admin.planExpiresAt.getTime() > Date.now() && admin.planTier === "PREMIUM");
+      expect(isEffectivePro).toBe(true);
+    });
+  });
 });

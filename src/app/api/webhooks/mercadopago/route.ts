@@ -54,25 +54,52 @@ export async function POST(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    if (order) {
+    if (!order && userId) {
+      // Se não havia pedido cadastrado previamente, registra para manter a trilha de auditoria
+      order = await prisma.paymentOrder.create({
+        data: {
+          userId,
+          mercadoPagoId: String(payment.id),
+          status: "PENDING",
+          planTier,
+          billingCycle,
+          amount: payment.transaction_amount || 0,
+          paymentMethod: payment.payment_method_id,
+        },
+      });
+    }
+
+    // 🛡️ IDEMPOTENCY GUARD (Princípio de Engenharia de Software):
+    // Se o pedido já consta como APPROVED, responde 200 imediatamente.
+    // Isso impede que retentativas de webhook do Mercado Pago renovem o plano várias vezes!
+    if (order?.status === "APPROVED") {
+      console.log(`[Mercado Pago Webhook] 🛡️ Pedido ${order.id} (MP: ${payment.id}) já aprovado. Resposta idempotente (sem re-ativação).`);
+      return NextResponse.json({ received: true, status: "already_approved", idempotent: true }, { status: 200 });
+    }
+
+    // 3. Se o pagamento foi APROVADO, ativa atomicamente com trava no banco
+    if (status === "approved" && order) {
+      const targetUserId = userId || order.userId;
+      console.log(`[Mercado Pago Webhook] 🚀 Pagamento APROVADO! Ativando plano ${planTier} com trava atômica para o pedido: ${order.id}`);
+      
+      const activation = await activateUserPlan(targetUserId, planTier, billingCycle, order.id);
+
+      return NextResponse.json({
+        received: true,
+        status: "approved",
+        activated: activation.activated,
+        planExpiresAt: activation.planExpiresAt,
+      }, { status: 200 });
+    } else if (order) {
+      // Atualiza status não aprovado (pending, rejected, cancelled, refunded)
       await prisma.paymentOrder.update({
         where: { id: order.id },
         data: {
           status: status ? status.toUpperCase() : "PENDING",
           mercadoPagoId: String(payment.id),
           paymentMethod: payment.payment_method_id || order.paymentMethod,
-          paidAt: status === "approved" ? new Date() : undefined,
         },
       });
-    }
-
-    // 3. Se o pagamento foi APROVADO, ativa imediatamente o plano do aluno
-    if (status === "approved") {
-      const targetUserId = userId || order?.userId;
-      if (targetUserId) {
-        console.log(`[Mercado Pago Webhook] 🚀 Pagamento APROVADO! Ativando plano ${planTier} para o usuário: ${targetUserId}`);
-        await activateUserPlan(targetUserId, planTier, billingCycle);
-      }
     }
 
     return NextResponse.json({ received: true, status }, { status: 200 });

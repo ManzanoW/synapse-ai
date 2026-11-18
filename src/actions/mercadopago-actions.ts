@@ -281,11 +281,8 @@ export async function checkOrderStatusAction(orderId: string): Promise<{
       try {
         const mpDetails = await paymentClient.get({ id: order.mercadoPagoId });
         if (mpDetails.status === "approved") {
-          await activateUserPlan(order.userId, order.planTier, order.billingCycle);
-          await prisma.paymentOrder.update({
-            where: { id: order.id },
-            data: { status: "APPROVED", paidAt: new Date() },
-          });
+          // Ativação atômica e estritamente idempotente vinculada ao pedido
+          await activateUserPlan(order.userId, order.planTier, order.billingCycle, order.id);
           revalidatePath("/pricing");
           revalidatePath("/dashboard");
           return { success: true, status: "APPROVED", isApproved: true };
@@ -307,24 +304,75 @@ export async function checkOrderStatusAction(orderId: string): Promise<{
 }
 
 /**
- * Ativa ou prorroga a assinatura Pro/Elite do concurseiro
+ * 🛡️ Ativa ou prorroga a assinatura Pro/Elite do concurseiro de forma ESTRITAMENTE IDEMPOTENTE.
+ * Garante que um mesmo pedido (orderId) NUNCA renove ou estenda o plano mais de uma vez,
+ * mesmo em caso de múltiplos webhooks concorrentes ou retentativas de rede.
  */
 export async function activateUserPlan(
   userId: string,
   planTier: string,
   billingCycle: string,
-) {
+  orderId?: string,
+): Promise<{ success: boolean; activated: boolean; planExpiresAt?: Date }> {
+  const durationDays = billingCycle === "ANNUAL" ? 365 : 30;
+
+  // Se um orderId for fornecido, executa uma transação atômica que só avança se o pedido NÃO estiver APPROVED
+  if (orderId) {
+    return await prisma.$transaction(async (tx) => {
+      // 🔒 TRAVA ATÔMICA: Atualiza apenas pedidos que ainda NÃO estão aprovados
+      const updateResult = await tx.paymentOrder.updateMany({
+        where: {
+          id: orderId,
+          status: { not: "APPROVED" },
+        },
+        data: {
+          status: "APPROVED",
+          paidAt: new Date(),
+        },
+      });
+
+      // Se count === 0, o pedido já foi aprovado por outro webhook/thread concorrente. Idempotência garantida!
+      if (updateResult.count === 0) {
+        console.log(`[Idempotency Guard] 🛡️ Pedido ${orderId} já foi processado anteriormente. Ignorando re-ativação duplicada.`);
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: { planExpiresAt: true },
+        });
+        return { success: true, activated: false, planExpiresAt: user?.planExpiresAt || undefined };
+      }
+
+      // Pedido era PENDING e acabou de ser aprovado com exclusividade atômica
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { planTier: true, planExpiresAt: true },
+      });
+
+      const now = new Date();
+      const currentExpiry = user?.planExpiresAt && user.planExpiresAt > now ? user.planExpiresAt : now;
+      const newExpiresAt = new Date(currentExpiry.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          planTier,
+          planExpiresAt: newExpiresAt,
+        },
+      });
+
+      console.log(`[Idempotency Guard] ✅ Pedido ${orderId} ativado com sucesso! Validade estendida até ${newExpiresAt.toISOString()}`);
+      return { success: true, activated: true, planExpiresAt: newExpiresAt };
+    });
+  }
+
+  // Caso fallback (sem orderId, ex: ativação administrativa manual):
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { planTier: true, planExpiresAt: true },
   });
 
-  if (!user) return;
+  if (!user) return { success: false, activated: false };
 
-  const durationDays = billingCycle === "ANNUAL" ? 365 : 30;
   const now = new Date();
-  
-  // Se o aluno já tem plano ativo com data futura, prorroga a partir da data futura
   const currentExpiry = user.planExpiresAt && user.planExpiresAt > now ? user.planExpiresAt : now;
   const newExpiresAt = new Date(currentExpiry.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
@@ -335,4 +383,6 @@ export async function activateUserPlan(
       planExpiresAt: newExpiresAt,
     },
   });
+
+  return { success: true, activated: true, planExpiresAt: newExpiresAt };
 }
