@@ -213,9 +213,21 @@ export async function finishFocusSessionAction(
  * Recupera as métricas de foco e pomodoro do estudante para alimentar o cockpit
  */
 export async function getFocusMetricsAction(
-  userId: string,
+  userIdParam?: string,
 ): Promise<{ success: boolean; data?: FocusMetricsData; error?: string }> {
   try {
+    const session = await auth();
+    const sessionUserId = session?.user?.id;
+
+    if (!sessionUserId) {
+      return { success: false, error: "Não autorizado." };
+    }
+
+    if (userIdParam && userIdParam !== sessionUserId && userIdParam !== "demo-user-id") {
+      return { success: false, error: "Acesso negado: violação de posse de recurso (IDOR)." };
+    }
+
+    const userId = sessionUserId;
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 

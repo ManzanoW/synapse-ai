@@ -119,7 +119,7 @@ export async function toggleDemoPlanTierAction(
 
     if (
       process.env.NODE_ENV === "production" &&
-      process.env.ALLOW_DEMO_PLAN_TOGGLE === "false" &&
+      process.env.ALLOW_DEMO_PLAN_TOGGLE !== "true" &&
       !isAdmin
     ) {
       return {
@@ -228,10 +228,14 @@ export async function submitSubscriptionLeadAction(input: {
       },
     });
 
-    // Concede ativação imediata do plano escolhido (PREMIUM ou ELITE)
+    // Concede ativação imediata de Degustação VIP do plano escolhido por 3 dias
+    const trialExpiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
     await prisma.user.update({
       where: { id: userId },
-      data: { planTier: assignedTier },
+      data: {
+        planTier: assignedTier,
+        planExpiresAt: trialExpiresAt,
+      },
     });
 
     revalidatePath("/pricing");

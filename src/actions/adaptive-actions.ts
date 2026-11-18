@@ -761,17 +761,19 @@ export async function resetScheduleToDefaultAction(userIdParam?: string): Promis
   try {
     const session = await auth();
     const sessionUserId = session?.user?.id;
-    if (sessionUserId && userIdParam && userIdParam !== sessionUserId) {
+
+    if (!sessionUserId) {
+      return { success: false, error: "Usuário não autenticado." };
+    }
+
+    if (userIdParam && userIdParam !== sessionUserId && userIdParam !== "demo-user-id") {
       return {
         success: false,
         error: "Acesso negado: violação de posse de recurso (IDOR).",
       };
     }
-    const userId = sessionUserId || userIdParam;
 
-    if (!userId) {
-      return { success: false, error: "Usuário não autenticado." };
-    }
+    const userId = sessionUserId;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
