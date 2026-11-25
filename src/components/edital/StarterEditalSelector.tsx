@@ -5,16 +5,20 @@ import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import { triggerHaptic } from "@/lib/sensory/haptics";
 import {
-  Sparkles,
   Loader2,
   Check,
   ArrowRight,
   BookOpen,
   FileText,
   ShieldAlert,
-  Wand2,
   ChevronLeft,
   Search,
+  Shield,
+  Scale,
+  Landmark,
+  Building2,
+  Terminal,
+  Stethoscope,
 } from "lucide-react";
 import {
   STARTER_EDITAL_TEMPLATES,
@@ -29,12 +33,13 @@ interface StarterEditalSelectorProps {
   onSuccess?: (data?: { subjectsCount?: number; topicsCount?: number }) => void;
   showCustomLink?: boolean;
   compact?: boolean;
+  hideHeader?: boolean;
 }
 
 interface MacroArea {
   id: string;
   name: string;
-  icon: string;
+  icon: React.ReactNode;
   tag: string;
   badge: string;
   description: string;
@@ -45,36 +50,36 @@ const MACRO_AREAS: MacroArea[] = [
   {
     id: "policial",
     name: "Carreira Policial",
-    icon: "👮",
+    icon: <Shield size={16} className="text-indigo-400" />,
     tag: "PF, PRF, Polícias Civis e PM",
-    badge: "Popular 🔥",
+    badge: "Alta Demanda",
     description: "Direito Penal, Processo Penal, Constitucional, RLM e Legislação Especial.",
     categoryFilter: (t) => t.category === "policial",
   },
   {
     id: "juridica",
     name: "Tribunais & Jurídica",
-    icon: "⚖️",
+    icon: <Scale size={16} className="text-cyan-400" />,
     tag: "TJ, TRT, TRE, TRF e Cartórios",
-    badge: "Estável 🏛️",
+    badge: "Carreira de Estado",
     description: "Processo Civil, Processo do Trabalho, Eleitoral e Direito Público.",
     categoryFilter: (t) => t.category === "juridica",
   },
   {
     id: "fiscal_controle",
     name: "Fiscal & Controle",
-    icon: "💰",
+    icon: <Landmark size={16} className="text-emerald-400" />,
     tag: "Receita Federal, SEFAZ, TCU e TCE",
-    badge: "Altos Salários 💎",
+    badge: "Remuneração Topo",
     description: "Direito Tributário, Auditoria, Contabilidade Geral e Pública.",
     categoryFilter: (t) => t.category === "fiscal_controle",
   },
   {
     id: "administrativo",
     name: "Administrativo & Bancário",
-    icon: "🏛️",
+    icon: <Building2 size={16} className="text-amber-400" />,
     tag: "INSS, Banco do Brasil, Caixa e CNU",
-    badge: "Muitas Vagas 🚀",
+    badge: "Ampla Concorrência",
     description: "Atendimento bancário, Seguridade Social, Administração Pública e AFA.",
     categoryFilter: (t) =>
       t.category === "administrativo" || t.id === "bancario" || t.category === "geral",
@@ -82,18 +87,18 @@ const MACRO_AREAS: MacroArea[] = [
   {
     id: "ti",
     name: "Tecnologia & Dados",
-    icon: "💻",
+    icon: <Terminal size={16} className="text-indigo-400" />,
     tag: "TI Bancos, CNU Bloco 2, Dev e Dados",
-    badge: "Em Alta ⚡",
-    description: "Engenharia de Software, Bancos de Dados, Segurança e Inteligência Artificial.",
+    badge: "Editais Abertos",
+    description: "Engenharia de Software, Bancos de Dados, Segurança e Ciência de Dados.",
     categoryFilter: (t) => t.category === "ti",
   },
   {
     id: "saude_educacao",
     name: "Saúde & Educação",
-    icon: "🩺",
+    icon: <Stethoscope size={16} className="text-cyan-400" />,
     tag: "EBSERH, SUS, Enfermagem e Professores",
-    badge: "Essencial 🌱",
+    badge: "Quadros Técnicos",
     description: "Legislação do SUS, Enfermagem, Didática e Fundamentos da Educação.",
     categoryFilter: (t) => t.category === "saude_educacao",
   },
@@ -103,6 +108,7 @@ export function StarterEditalSelector({
   onSuccess,
   showCustomLink = true,
   compact = false,
+  hideHeader = false,
 }: StarterEditalSelectorProps) {
   const router = useRouter();
   const [loadingTemplateId, setLoadingTemplateId] = useState<string | null>(null);
@@ -271,17 +277,19 @@ export function StarterEditalSelector({
          ========================================================================= */}
       {!selectedAreaId ? (
         <div className="space-y-3.5">
-          <div className="text-center sm:text-left">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-400 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20">
-              Passo 1 de 2 • Escolha sua Área
-            </span>
-            <h3 className="text-base sm:text-lg font-black text-white mt-1.5 tracking-tight">
-              Qual carreira de concurso você deseja conquistar?
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Selecione sua área para ver os editais mais consagrados com pesos calibrados:
-            </p>
-          </div>
+          {!hideHeader && (
+            <div className="text-center sm:text-left">
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-300 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/80">
+                Catálogo de Carreiras Oficiais
+              </span>
+              <h3 className="text-base sm:text-lg font-bold text-white mt-1.5 tracking-tight">
+                Selecione sua área de concurso
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Grades curriculares padronizadas com pesos calibrados conforme os últimos editais:
+              </p>
+            </div>
+          )}
 
           {/* Grid de 6 Áreas Claras */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -293,19 +301,21 @@ export function StarterEditalSelector({
                   triggerHaptic("light");
                   setSelectedAreaId(area.id);
                 }}
-                className="group relative p-4 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-950/40 text-left transition-all cursor-pointer flex flex-col justify-between space-y-2.5 active:scale-98"
+                className="group relative p-4 rounded-lg border border-slate-800 bg-slate-950/60 hover:bg-slate-900/90 hover:border-slate-700 text-left transition-all cursor-pointer flex flex-col justify-between space-y-2.5 active:scale-98"
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-2xl">{area.icon}</span>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300 group-hover:text-indigo-300 group-hover:border-indigo-500/30">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
+                      {area.icon}
+                    </div>
+                    <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 group-hover:text-slate-300">
                       {area.badge}
                     </span>
                   </div>
-                  <h4 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
+                  <h4 className="text-sm font-bold text-slate-100 group-hover:text-white transition-colors">
                     {area.name}
                   </h4>
-                  <p className="text-[11px] text-indigo-400/90 font-medium mt-0.5">
+                  <p className="text-[11px] text-indigo-400 font-medium mt-0.5">
                     {area.tag}
                   </p>
                   <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
@@ -313,31 +323,31 @@ export function StarterEditalSelector({
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-slate-400 group-hover:text-white font-medium">
-                  <span>Explorar editais</span>
+                <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 group-hover:text-white font-medium">
+                  <span>Ver editais da área</span>
                   <ArrowRight size={13} className="transition-transform group-hover:translate-x-1 text-indigo-400" />
                 </div>
               </button>
             ))}
           </div>
 
-          {/* Botão de Escape para Concurso Específico com IA */}
-          <div className="pt-2">
+          {/* Botão de Escape para Concurso Específico */}
+          <div className="pt-1">
             {!showAiCustomBox ? (
               <button
                 type="button"
                 onClick={() => setShowAiCustomBox(true)}
-                className="w-full py-3 px-4 rounded-2xl border border-dashed border-indigo-500/40 bg-indigo-500/5 hover:bg-indigo-500/10 text-xs font-semibold text-indigo-300 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-lg border border-dashed border-slate-700 bg-slate-900/40 hover:bg-slate-900/80 hover:border-slate-600 text-xs font-medium text-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Wand2 size={15} className="text-indigo-400" />
-                <span>Não encontrou seu concurso exato? Digite o cargo e a IA monta o edital em 3 segundos</span>
+                <Search size={14} className="text-indigo-400" />
+                <span>Não encontrou seu concurso específico? Pesquise o cargo ou órgão para mapeamento automático</span>
               </button>
             ) : (
-              <div className="p-4 rounded-2xl border border-indigo-500/40 bg-indigo-950/20 space-y-3 animate-in fade-in duration-200">
+              <div className="p-4 rounded-lg border border-slate-700 bg-slate-900/80 space-y-3 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-2">
-                    <Sparkles size={14} className="text-amber-400" />
-                    Gerar Qualquer Concurso com Inteligência Artificial
+                    <BookOpen size={14} className="text-indigo-400" />
+                    Mapeamento Automático por Cargo ou Órgão
                   </span>
                   <button
                     type="button"
@@ -354,19 +364,19 @@ export function StarterEditalSelector({
                     value={customRoleInput}
                     onChange={(e) => setCustomRoleInput(e.target.value)}
                     placeholder="Ex: Auditor SEFAZ-SP, Analista IBAMA, Oficial PM..."
-                    className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
                   />
                   <button
                     type="submit"
                     disabled={isGeneratingCustom || !customRoleInput.trim()}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shrink-0"
+                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shrink-0"
                   >
                     {isGeneratingCustom ? (
                       <Loader2 size={14} className="animate-spin" />
                     ) : (
-                      <Wand2 size={14} />
+                      <Check size={14} />
                     )}
-                    <span>Gerar Edital</span>
+                    <span>Mapear Edital</span>
                   </button>
                 </form>
               </div>
@@ -379,7 +389,7 @@ export function StarterEditalSelector({
            ========================================================================= */
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Barra Superior de Retorno */}
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
             <button
               type="button"
               onClick={() => {
@@ -393,7 +403,7 @@ export function StarterEditalSelector({
             </button>
 
             <span className="text-xs font-bold text-white flex items-center gap-2">
-              <span className="text-lg">{activeArea?.icon}</span>
+              {activeArea?.icon}
               <span>{activeArea?.name}</span>
             </span>
           </div>
@@ -412,8 +422,8 @@ export function StarterEditalSelector({
               </span>
             </label>
             {replaceExisting && (
-              <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 font-bold">
-                ⚠️ Modo Limpeza Ativo
+              <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-semibold">
+                Modo Limpeza Ativo
               </span>
             )}
           </div>
@@ -432,17 +442,16 @@ export function StarterEditalSelector({
               return (
                 <div
                   key={tpl.id}
-                  className="relative p-4 rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-3"
+                  className="relative p-4 rounded-lg border border-slate-800 bg-slate-950/60 hover:bg-slate-900/90 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xl shrink-0">{tpl.icon}</span>
                         <span className="text-sm font-bold text-white leading-tight truncate">
                           {tpl.title}
                         </span>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shrink-0">
+                      <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800 shrink-0">
                         {tpl.badge}
                       </span>
                     </div>
@@ -456,20 +465,20 @@ export function StarterEditalSelector({
                       {visibleMaterias.map((m, idx) => (
                         <span
                           key={idx}
-                          className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 truncate max-w-[150px]"
+                          className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 truncate max-w-[150px]"
                         >
                           {m.name}
                         </span>
                       ))}
                       {remainingCount > 0 && (
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+                        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                           +{remainingCount} matérias
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
                     <span className="text-[11px] text-slate-400 font-medium">
                       {tpl.materias.length} disciplinas mapeadas
                     </span>
@@ -478,17 +487,17 @@ export function StarterEditalSelector({
                       type="button"
                       disabled={loadingTemplateId !== null || isGeneratingCustom}
                       onClick={() => handleSelectTemplate(tpl.id)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold shadow-md shadow-indigo-950/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                     >
                       {isLoading ? (
                         <>
                           <Loader2 size={13} className="animate-spin" />
-                          <span>Ativando...</span>
+                          <span>Carregando...</span>
                         </>
                       ) : (
                         <>
-                          <Sparkles size={13} />
-                          <span>Ativar em 1 Clique</span>
+                          <Check size={13} />
+                          <span>Carregar Grade Oficial</span>
                         </>
                       )}
                     </button>
@@ -498,12 +507,12 @@ export function StarterEditalSelector({
             })}
           </div>
 
-          {/* Caixa de IA Específica para a Área */}
-          <div className="p-3.5 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+          {/* Caixa Específica para a Área */}
+          <div className="p-3.5 rounded-lg bg-slate-900/40 border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
             <div className="text-slate-300">
               <span className="font-semibold text-white">Não é o edital que você procura?</span>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Digite o cargo exato da área {activeArea?.name} e a IA gera o conteúdo verticalizado:
+                Informe o cargo ou órgão de {activeArea?.name} para estruturar o conteúdo programático:
               </p>
             </div>
 
@@ -516,19 +525,19 @@ export function StarterEditalSelector({
                 value={customRoleInput}
                 onChange={(e) => setCustomRoleInput(e.target.value)}
                 placeholder={`Ex: Cargo em ${activeArea?.name}...`}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 w-full sm:w-60"
+                className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 w-full sm:w-60"
               />
               <button
                 type="submit"
                 disabled={isGeneratingCustom || !customRoleInput.trim()}
-                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
+                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
               >
                 {isGeneratingCustom ? (
                   <Loader2 size={13} className="animate-spin" />
                 ) : (
-                  <Wand2 size={13} />
+                  <Check size={13} />
                 )}
-                <span>Gerar</span>
+                <span>Mapear</span>
               </button>
             </form>
           </div>
@@ -542,7 +551,7 @@ export function StarterEditalSelector({
             className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition-colors font-medium"
           >
             <FileText size={13} />
-            <span>Já tem o arquivo do seu edital em PDF? Importe com análise de IA aqui</span>
+            <span>Já possui o PDF do edital oficial? Importar documento</span>
             <ArrowRight size={13} />
           </a>
         </div>

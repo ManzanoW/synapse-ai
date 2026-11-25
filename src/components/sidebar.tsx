@@ -537,7 +537,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
       <aside
         className={`
-          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#07090e] border-r border-slate-200 dark:border-white/6 
+          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#080B11] border-r border-slate-200 dark:border-slate-800/80 
           text-slate-800 dark:text-slate-200 flex flex-col p-3.5 font-sans antialiased shrink-0 select-none
           fixed md:sticky top-0 left-0 z-50 transition-transform duration-300 ease-in-out 
           ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
@@ -558,29 +558,23 @@ export default function Sidebar({ user }: SidebarProps) {
               <X size={18} />
             </button>
 
-            <div className="inline-flex items-center justify-center gap-2">
-              <h1 className="font-extrabold text-slate-900 dark:text-slate-50 text-[1.8rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
+            <div className="inline-flex items-center justify-center gap-1.5">
+              <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-[1.65rem] tracking-tight">
                 Synapse
               </h1>
 
               <div className="inline-flex items-center gap-1">
-                <span className="font-black text-[1.8rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
+                <span className="font-bold text-[1.65rem] tracking-tight text-indigo-400">
                   AI
                 </span>
 
-                <div className="relative flex items-center justify-center w-2 h-2 mt-1.5">
-                  <span className="absolute w-2 h-2 rounded-full bg-indigo-400/40 animate-ping" />
-                  <svg
-                    viewBox="0 0 8 8"
-                    className="w-1.5 h-1.5 drop-shadow-[0_0_6px_#818cf8]"
-                  >
-                    <circle cx="4" cy="4" r="3.5" className="fill-indigo-200" />
-                  </svg>
+                <div className="relative flex items-center justify-center w-1.5 h-1.5 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                 </div>
               </div>
             </div>
 
-            <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-2 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+            <div className="w-full h-px bg-slate-200 dark:bg-slate-800/80 mt-2.5" />
           </div>
 
           {/* Barra de Busca Rápida (Full Width - Ampla, Acessível e Confortável) */}
