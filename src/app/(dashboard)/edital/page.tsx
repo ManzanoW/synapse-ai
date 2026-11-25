@@ -351,9 +351,15 @@ function PlannerContent() {
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
                 Edital Verticalizado
               </h1>
-              <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-                {topics.length} tópicos • {subjects.length} matérias
-              </span>
+              {subjects.length > 0 ? (
+                <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                  {topics.length} tópicos • {subjects.length} matérias
+                </span>
+              ) : (
+                <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-400 border border-slate-700/80">
+                  Planejamento Inicial
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-400 mt-1">
               Mapeamento programático com controle de relevância, ciclos de
@@ -419,36 +425,36 @@ function PlannerContent() {
           ]}
         />
 
-        {/* Command Bar Consolidada (Linear / macOS Style) */}
-        <div className="relative z-30 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[#090d16]/90 border border-slate-800/80 p-2.5 sm:p-3 rounded-2xl shadow-xl backdrop-blur-md">
-          {/* Search Bar */}
-          <div className="relative flex-1 min-w-[220px]">
-            <Search
-              size={14}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Pesquisar tópico ou matéria..."
-              className="w-full bg-slate-950 border border-slate-900 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/20 transition-all"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 rounded-md cursor-pointer"
-                title="Limpar busca"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
+        {/* Command Bar Consolidada (Linear / macOS Style) - Exibida apenas quando há matérias para pesquisar/gerenciar */}
+        {!loading && subjects.length > 0 && (
+          <div className="relative z-30 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[#090d16]/90 border border-slate-800/80 p-2.5 sm:p-3 rounded-2xl shadow-xl backdrop-blur-md">
+            {/* Search Bar */}
+            <div className="relative flex-1 min-w-[220px]">
+              <Search
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Pesquisar tópico ou matéria..."
+                className="w-full bg-slate-950 border border-slate-900 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 rounded-md cursor-pointer"
+                  title="Limpar busca"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
 
-          {/* View Mode & Actions Group */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between lg:justify-end">
-            {subjects.length > 0 && (
+            {/* View Mode & Actions Group */}
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between lg:justify-end">
               <div role="tablist" aria-label="Modo de visualização do edital" className="inline-flex items-center p-1 bg-slate-950/80 border border-slate-800 rounded-xl shrink-0">
                 <button
                   type="button"
@@ -491,20 +497,18 @@ function PlannerContent() {
                   </span>
                 </button>
               </div>
-            )}
 
-            <button
-              type="button"
-              onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center justify-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
-              title="Selecione um edital por carreira ou importe seu concurso"
-            >
-              <Sparkles size={13} className="text-amber-400" />
-              <span className="hidden sm:inline">Carreiras Prontas</span>
-              <span className="sm:hidden">Carreiras</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
+                title="Selecione um edital por carreira ou importe seu concurso"
+              >
+                <Sparkles size={13} className="text-amber-400" />
+                <span className="hidden sm:inline">Carreiras Prontas</span>
+                <span className="sm:hidden">Carreiras</span>
+              </button>
 
-            {subjects.length > 0 && (
               <button
                 type="button"
                 onClick={() => setIsPrintModalOpen(true)}
@@ -515,9 +519,7 @@ function PlannerContent() {
                 <span className="hidden sm:inline">Imprimir Edital A4 (Parede)</span>
                 <span className="sm:hidden">Imprimir A4</span>
               </button>
-            )}
 
-            {subjects.length > 0 && (
               <div className="relative z-30" ref={actionsMenuRef}>
                 <button
                   type="button"
@@ -587,18 +589,18 @@ function PlannerContent() {
                   </div>
                 )}
               </div>
-            )}
 
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 sm:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer shrink-0"
-            >
-              <Plus size={14} />
-              <span>Novo conteúdo</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 sm:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer shrink-0"
+              >
+                <Plus size={14} />
+                <span>Novo conteúdo</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Header de Métricas Globais (Cards de KPIs Executivos) - Exibido apenas quando há disciplinas cadastradas */}
         {!loading && subjects.length > 0 && (
