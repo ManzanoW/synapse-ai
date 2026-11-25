@@ -201,7 +201,7 @@ export default function AchievementsPage() {
           </div>
 
           {/* BADGE TOTAL XP DE CONQUISTAS */}
-          <div className="flex items-center gap-3.5 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-4 shadow-xl backdrop-blur-2xl">
+          <div className="flex items-center gap-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 shadow-xs">
             <div className="rounded-2xl bg-amber-500/20 p-3 text-amber-500 dark:text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
               <Sparkles size={22} className="animate-pulse" />
             </div>
@@ -217,7 +217,7 @@ export default function AchievementsPage() {
         </div>
 
         {/* ================= BANNER: LIGAS SEMANAIS & RANKING ================= */}
-        <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-slate-950/80 to-purple-950/40 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#090d16] p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-500/40 bg-cyan-500/15 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
               <Trophy size={20} />
@@ -251,7 +251,7 @@ export default function AchievementsPage() {
 
         {/* ================= 2. HERO CARD: ÚLTIMA CONQUISTA DESBLOQUEADA ================= */}
         {latestUnlocked && (
-          <div className="relative overflow-hidden rounded-3xl border border-amber-500/40 bg-linear-to-r from-amber-500/10 via-[#070b16] to-purple-500/10 p-6 backdrop-blur-2xl shadow-2xl">
+          <div className="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-[#090d16] p-6 shadow-xs">
             <div className="pointer-events-none absolute top-0 right-0 left-0 h-px bg-linear-to-r from-transparent via-amber-400/60 to-transparent" />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -305,7 +305,7 @@ export default function AchievementsPage() {
 
         {/* ================= 3. MÉTRICAS DE PROGRESSO GERAL ================= */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] p-5 backdrop-blur-2xl shadow-xl">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 shadow-xs">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Conquistas Desbloqueadas
             </span>
@@ -319,7 +319,7 @@ export default function AchievementsPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] p-5 backdrop-blur-2xl shadow-xl">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 shadow-xs">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Taxa de Conclusão
             </span>
@@ -330,7 +330,7 @@ export default function AchievementsPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] p-5 backdrop-blur-2xl shadow-xl">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 shadow-xs">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Próximo Marco
             </span>
@@ -403,10 +403,10 @@ export default function AchievementsPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className={`relative overflow-hidden rounded-3xl border p-5 backdrop-blur-2xl transition-all duration-300 flex flex-col justify-between ${
+                    className={`relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 flex flex-col justify-between ${
                       badge.isUnlocked
-                        ? `border-amber-500/40 bg-white/90 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] ${rarity.glow} hover:border-amber-500/60 shadow-lg`
-                        : "border-slate-200/80 dark:border-white/5 bg-slate-100/50 dark:bg-slate-950/40 opacity-70 hover:opacity-95"
+                        ? `border-amber-500/40 bg-white dark:bg-[#090d16] ${rarity.glow} hover:border-amber-500/60 shadow-xs`
+                        : "border-slate-200/80 dark:border-slate-800/60 bg-slate-100/50 dark:bg-[#090d16]/60 opacity-70 hover:opacity-95"
                     }`}
                   >
                     {badge.isUnlocked && (

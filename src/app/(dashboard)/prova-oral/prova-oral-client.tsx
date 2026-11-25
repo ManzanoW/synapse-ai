@@ -400,8 +400,8 @@ export default function ProvaOralClient({
   if (!hasLawAccess) {
     return (
       <div className="min-h-[85vh] flex items-center justify-center p-4 sm:p-6">
-        <div className="max-w-xl w-full rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-950/80 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl text-center space-y-6">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-rose-500/10 border border-rose-500/30 text-rose-500 shadow-xl shadow-rose-500/10">
+        <div className="max-w-xl w-full rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 sm:p-8 shadow-xs text-center space-y-6">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 shadow-xs">
             <Mic className="h-10 w-10" />
           </div>
 
@@ -550,7 +550,7 @@ export default function ProvaOralClient({
 
             {/* LISTAGEM DE SABATINAS ANTERIORES */}
             {oralHistory.length === 0 ? (
-              <div className="p-10 rounded-3xl bg-slate-950/60 border border-dashed border-white/10 text-center space-y-3">
+              <div className="p-10 rounded-2xl bg-[#090d16] border border-dashed border-slate-800/80 text-center space-y-3">
                 <Gavel size={36} className="mx-auto text-zinc-600" />
                 <h3 className="text-sm font-bold text-white">Nenhuma sabatina realizada ainda</h3>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto">
@@ -628,7 +628,7 @@ export default function ProvaOralClient({
 
         {/* ================= 1. SETUP DE CARGO E MATÉRIA ================= */}
         {activeTab === "EXAM" && stage === "SETUP" && (
-          <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl space-y-6 animate-fade-in">
+          <div className="rounded-2xl border border-slate-800/80 bg-[#090d16] p-6 sm:p-8 shadow-xs space-y-6 animate-fade-in">
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Gavel size={18} className="text-rose-400" />
@@ -717,7 +717,7 @@ export default function ProvaOralClient({
         {stage === "EXAM" && questionData && (
           <div className="space-y-6 animate-fade-in">
             {/* CARD DA BANCA EXAMINADORA */}
-            <div className="rounded-3xl border border-rose-500/30 bg-slate-950/80 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl space-y-4">
+            <div className="rounded-2xl border border-rose-500/30 bg-[#090d16] p-6 sm:p-8 shadow-xs space-y-4">
               <div className="flex items-center justify-between gap-3 flex-wrap border-b border-white/[0.08] pb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
@@ -779,7 +779,7 @@ export default function ProvaOralClient({
             </div>
 
             {/* ÁREA DE RESPOSTA DO CANDIDATO (MICROFONE) */}
-            <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl space-y-4">
+            <div className="rounded-2xl border border-slate-800/80 bg-[#090d16] p-6 sm:p-8 shadow-xs space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
                   <Mic size={15} className={isRecording ? "text-rose-400 animate-pulse" : "text-zinc-400"} />
@@ -857,7 +857,7 @@ export default function ProvaOralClient({
 
         {/* ================= 3. AVALIANDO COM A BANCA ================= */}
         {stage === "EVALUATING" && (
-          <div className="rounded-3xl border border-rose-500/30 bg-slate-950/80 p-12 shadow-2xl backdrop-blur-2xl text-center space-y-4 animate-fade-in">
+          <div className="rounded-2xl border border-rose-500/30 bg-[#090d16] p-12 shadow-xs text-center space-y-4 animate-fade-in">
             <div className="p-4 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 w-16 h-16 mx-auto flex items-center justify-center animate-pulse">
               <Gavel size={32} />
             </div>
@@ -878,7 +878,7 @@ export default function ProvaOralClient({
           <div className="space-y-6 animate-fade-in">
             {/* CARD DE NOTA E VEREDITO */}
             <div
-              className={`rounded-3xl border p-6 sm:p-8 shadow-2xl backdrop-blur-2xl space-y-5 ${
+              className={`rounded-2xl border p-6 sm:p-8 shadow-xs space-y-5 ${
                 evaluation.isApproved
                   ? "border-emerald-500/40 bg-emerald-950/20"
                   : "border-amber-500/40 bg-amber-950/20"
@@ -948,7 +948,7 @@ export default function ProvaOralClient({
 
             {/* PONTOS FORTES E PONTOS A MELHORAR */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-3xl border border-emerald-500/20 bg-slate-950/60 p-5 space-y-2">
+              <div className="rounded-2xl border border-emerald-500/20 bg-[#090d16] p-5 space-y-2">
                 <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                   <CheckCircle2 size={14} /> Pontos Positivos na Fala
                 </span>
@@ -962,7 +962,7 @@ export default function ProvaOralClient({
                 </ul>
               </div>
 
-              <div className="rounded-3xl border border-amber-500/20 bg-slate-950/60 p-5 space-y-2">
+              <div className="rounded-2xl border border-amber-500/20 bg-[#090d16] p-5 space-y-2">
                 <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                   <AlertTriangle size={14} /> Oportunidades de Melhoria
                 </span>
@@ -978,7 +978,7 @@ export default function ProvaOralClient({
             </div>
 
             {/* FEEDBACK CIRÚRGICO DA BANCA */}
-            <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-6 space-y-4">
+            <div className="rounded-2xl border border-slate-800/80 bg-[#090d16] p-6 space-y-4">
               <div className="space-y-2">
                 <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
                   <BookOpen size={15} /> Parecer Técnico-Jurídico
@@ -999,7 +999,7 @@ export default function ProvaOralClient({
             </div>
 
             {/* ESPELHO DA RESPOSTA NOTA 10 (MODELAGEM COGNITIVA) */}
-            <div className="rounded-3xl border border-indigo-500/30 bg-indigo-950/20 p-6 space-y-3">
+            <div className="rounded-2xl border border-indigo-500/30 bg-[#090d16] p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
                   <Sparkles size={15} className="text-amber-300" />

@@ -225,13 +225,8 @@ export default function LeaderboardPage() {
     <div className="min-h-screen pb-20 pt-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
       {/* ================= 1. HERO BANNER DA LIGA ATUAL ================= */}
       <div
-        className={`relative overflow-hidden rounded-3xl border ${config.borderColor} bg-gradient-to-br ${config.gradient} p-6 sm:p-8 backdrop-blur-2xl shadow-2xl transition-all`}
+        className={`relative overflow-hidden rounded-2xl border ${config.borderColor} bg-gradient-to-br ${config.gradient} p-6 sm:p-8 shadow-lg transition-all`}
       >
-        {/* Glow de fundo */}
-        <div
-          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full blur-3xl opacity-30"
-          style={{ backgroundColor: config.glowColor }}
-        />
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -240,7 +235,7 @@ export default function LeaderboardPage() {
             <motion.div
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className={`relative flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl border-2 ${config.borderColor} bg-slate-950/70 shadow-[0_0_30px_rgba(0,0,0,0.5)]`}
+              className={`relative flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-2 ${config.borderColor} bg-[#090d16] shadow-lg`}
             >
               {renderTierIcon(tier, "h-11 w-11")}
               <div className="absolute -bottom-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 border border-white/20 text-sm shadow">
@@ -405,7 +400,7 @@ export default function LeaderboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className={`relative flex flex-col items-center justify-between rounded-3xl border border-slate-300 dark:border-slate-700 bg-gradient-to-b from-slate-200/50 via-slate-100/30 to-transparent dark:from-slate-800/50 dark:via-slate-900/40 p-6 text-center shadow-lg md:order-1 ${
+                className={`relative flex flex-col items-center justify-between rounded-2xl border border-slate-300 dark:border-slate-700 bg-gradient-to-b from-slate-200/50 via-slate-100/30 to-transparent dark:from-slate-800/50 dark:via-[#090d16] p-6 text-center shadow-lg md:order-1 ${
                   top3[1].isCurrentUser ? "ring-2 ring-slate-400 dark:ring-slate-300" : ""
                 }`}
               >
@@ -435,7 +430,7 @@ export default function LeaderboardPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`relative flex flex-col items-center justify-between rounded-3xl border-2 border-amber-500/60 bg-gradient-to-b from-amber-500/20 via-amber-500/5 to-transparent p-6 text-center shadow-2xl md:order-2 md:-mt-4 ${
+                className={`relative flex flex-col items-center justify-between rounded-2xl border-2 border-amber-500/60 bg-gradient-to-b from-amber-500/20 via-amber-500/5 to-transparent p-6 text-center shadow-2xl md:order-2 md:-mt-4 ${
                   top3[0].isCurrentUser ? "ring-2 ring-amber-400" : ""
                 }`}
               >
@@ -445,7 +440,7 @@ export default function LeaderboardPage() {
                 </div>
                 <div className="flex flex-col items-center mt-2">
                   <div className="relative mb-3">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-400 to-amber-600 text-3xl font-black text-slate-950 shadow-xl shadow-amber-500/20">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-3xl font-black text-slate-950 shadow-xl shadow-amber-500/20">
                       {top3[0].name.charAt(0)}
                     </div>
                     <div className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-sm font-black text-slate-950 shadow-md">
@@ -470,7 +465,7 @@ export default function LeaderboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className={`relative flex flex-col items-center justify-between rounded-3xl border border-amber-700/30 dark:border-amber-700/40 bg-gradient-to-b from-amber-800/20 via-amber-900/10 to-transparent p-6 text-center shadow-lg md:order-3 ${
+                className={`relative flex flex-col items-center justify-between rounded-2xl border border-amber-700/30 dark:border-amber-700/40 bg-gradient-to-b from-amber-800/20 via-amber-900/10 to-transparent p-6 text-center shadow-lg md:order-3 ${
                   top3[2].isCurrentUser ? "ring-2 ring-amber-600" : ""
                 }`}
               >
@@ -499,7 +494,7 @@ export default function LeaderboardPage() {
           )}
 
           {/* TABELA COMPLETA (POSIÇÕES 1 A 20) */}
-          <div className="overflow-hidden rounded-3xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-950/70 shadow-2xl backdrop-blur-xl">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] shadow-xs">
             {/* Header da Tabela */}
             <div className="grid grid-cols-12 gap-3 px-6 py-4 border-b border-slate-200 dark:border-white/10 text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <div className="col-span-2 sm:col-span-1 text-center">Pos</div>
@@ -642,7 +637,7 @@ export default function LeaderboardPage() {
         <div className="space-y-8">
           {/* BANNER DO GRANDE BAÚ SEMANAL */}
           {chestStatus && (
-            <div className="relative overflow-hidden rounded-3xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-purple-500/15 p-6 sm:p-8 backdrop-blur-xl shadow-xl">
+            <div className="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-white dark:bg-[#090d16] p-6 sm:p-8 shadow-xs">
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-slate-950 shadow-xl shadow-amber-500/25">
@@ -728,12 +723,12 @@ export default function LeaderboardPage() {
               return (
                 <div
                   key={c.id}
-                  className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border p-6 backdrop-blur-xl shadow-lg transition-all ${
+                  className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border p-6 shadow-xs transition-all ${
                     c.claimed
                       ? "border-emerald-500/30 bg-emerald-500/5"
                       : c.completed
                       ? "border-amber-500/40 bg-amber-500/5 shadow-amber-500/10"
-                      : "border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-950/70"
+                      : "border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16]"
                   }`}
                 >
                   <div>
@@ -827,10 +822,10 @@ export default function LeaderboardPage() {
               return (
                 <div
                   key={tKey}
-                  className={`relative flex flex-col justify-between rounded-3xl border p-6 backdrop-blur-xl shadow-lg transition-all ${
+                  className={`relative flex flex-col justify-between rounded-2xl border p-6 shadow-xs transition-all ${
                     isCurrent
                       ? `${lConfig.borderColor} bg-gradient-to-br ${lConfig.gradient} ring-2 ring-amber-400`
-                      : "border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-950/70"
+                      : "border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16]"
                   }`}
                 >
                   <div className="space-y-4">
@@ -893,7 +888,7 @@ export default function LeaderboardPage() {
           </div>
 
           {/* DICAS DE PONTUAÇÃO */}
-          <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-white/[0.02] p-6 space-y-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50/90 dark:bg-[#090d16] p-6 space-y-4">
             <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-amber-500" />
               <span>Como pontuar e subir de Liga na Synapse AI</span>

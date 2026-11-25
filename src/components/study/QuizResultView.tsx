@@ -814,11 +814,8 @@ export function QuizResultView({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="relative overflow-hidden bg-linear-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-violet-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-2xl"
+          className="relative overflow-hidden bg-[#090d16] border border-indigo-500/30 rounded-2xl p-6 sm:p-8 shadow-xs"
         >
-          {/* Luzes internas da moldura */}
-          <div className="pointer-events-none absolute -top-24 -right-24 w-72 h-72 rounded-full bg-violet-600/15 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-indigo-600/15 blur-3xl" />
 
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
             {/* LADO ESQUERDO: TEXTOS, CLASSIFICAÇÃO & GAMIFICAÇÃO */}
@@ -874,7 +871,7 @@ export function QuizResultView({
                     </div>
                     <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-1.5">
                       <motion.div
-                        className="bg-linear-to-r from-violet-500 to-indigo-400 h-full rounded-full"
+                        className="bg-linear-to-r from-indigo-500 to-cyan-400 h-full rounded-full"
                         initial={{ width: 0 }}
                         animate={{
                           width: `${stats?.gamification?.progressPercentage || 0}%`,
@@ -1041,7 +1038,7 @@ export function QuizResultView({
         {/* ========================================================================= */}
         {/* TERMÔMETRO DE NOTA DE CORTE & ANÁLISE DE COMPETITIVIDADE DA BANCA         */}
         {/* ========================================================================= */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-white/10 hover:border-violet-500/30 rounded-3xl p-5 sm:p-6 shadow-xl transition-all">
+        <div className="relative overflow-hidden bg-[#090d16] border border-slate-800/80 hover:border-indigo-500/30 rounded-2xl p-5 sm:p-6 shadow-xs transition-all">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             {/* Contexto da Banca */}
             <div className="space-y-1.5 max-w-sm shrink-0">
@@ -1127,7 +1124,7 @@ export function QuizResultView({
         {/* EVOLUÇÃO RECENTE NESTA MATÉRIA (ÚLTIMAS TENTATIVAS)                       */}
         {/* ========================================================================= */}
         {recentStats && (
-          <div className="relative overflow-hidden bg-gradient-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-white/10 hover:border-indigo-500/30 rounded-3xl p-5 sm:p-6 shadow-xl transition-all">
+          <div className="relative overflow-hidden bg-[#090d16] border border-slate-800/80 hover:border-indigo-500/30 rounded-2xl p-5 sm:p-6 shadow-xs transition-all">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 shrink-0">
@@ -1180,7 +1177,7 @@ export function QuizResultView({
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* LADO ESQUERDO (7 cols): MATRIZ DE PACING EM 4 QUADRANTES */}
-          <div className="lg:col-span-7 bg-gradient-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-white/10 hover:border-violet-500/30 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 transition-all">
+          <div className="lg:col-span-7 bg-[#090d16] border border-slate-800/80 hover:border-indigo-500/30 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4 transition-all">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-3 gap-2">
               <div className="flex items-center gap-2.5">
                 <span className="p-2 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-300 shrink-0">
@@ -1275,7 +1272,7 @@ export function QuizResultView({
           </div>
 
           {/* LADO DIREITO (5 cols): RADAR SVG DE COMPETÊNCIAS DA PROVA */}
-          <div className="lg:col-span-5 bg-gradient-to-br from-[#090d18] via-[#070b16] to-[#04060c] border border-white/10 hover:border-violet-500/30 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4 transition-all">
+          <div className="lg:col-span-5 bg-[#090d16] border border-slate-800/80 hover:border-indigo-500/30 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col justify-between gap-4 transition-all">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <span className="p-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 shrink-0">
@@ -1984,7 +1981,7 @@ export function QuizResultView({
                                 }
                                 disabled={isDeepLoading}
                                 type="button"
-                                className="w-full sm:w-auto px-5 py-2.5 bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl transition-all shadow-md shadow-violet-950/40 flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs rounded-xl transition-all shadow-md shadow-indigo-950/40 flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                               >
                                 {isDeepLoading ? (
                                   <>
@@ -2008,7 +2005,7 @@ export function QuizResultView({
                               <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="p-5 rounded-2xl bg-linear-to-br from-violet-950/40 via-[#0a0e1c] to-[#080b16] border border-violet-500/40 space-y-4 shadow-xl"
+                                className="p-5 rounded-2xl bg-[#030712] border border-indigo-500/35 space-y-4 shadow-xs"
                               >
                                 <div className="flex items-center gap-2 text-violet-300 font-bold text-xs uppercase tracking-wider border-b border-violet-500/20 pb-2">
                                   <Sparkles

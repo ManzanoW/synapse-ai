@@ -642,7 +642,7 @@ export default function StudyFlashcard({
   if (!cards || cards.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[85vh] p-4">
-        <div className="w-full max-w-md p-6 sm:p-8 bg-slate-900/80 border border-slate-800 rounded-3xl backdrop-blur-2xl text-center space-y-4 shadow-2xl relative overflow-hidden">
+        <div className="w-full max-w-md p-6 sm:p-8 bg-[#090d16] border border-slate-800/80 rounded-2xl text-center space-y-4 shadow-xl relative overflow-hidden">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
             <Sparkles size={24} />
           </div>
@@ -670,7 +670,7 @@ export default function StudyFlashcard({
       </div>
 
       {/* Contêiner Principal Expandido para visualização imersiva e clara */}
-      <div className={`w-full max-w-4xl lg:max-w-5xl p-3 sm:p-8 md:p-10 rounded-none sm:rounded-[2.5rem] sm:backdrop-blur-3xl select-none transition-all relative z-10 ${
+      <div className={`w-full max-w-4xl lg:max-w-5xl p-3 sm:p-8 md:p-10 rounded-none sm:rounded-3xl select-none transition-all relative z-10 ${
         isLight
           ? "bg-transparent sm:bg-white/95 sm:border sm:border-slate-200/90 sm:shadow-[0_20px_50px_rgba(15,23,42,0.08)]"
           : "bg-transparent sm:bg-[#090d16]/90 sm:border sm:border-slate-800/80 sm:shadow-[0_0_60px_-10px_rgba(99,102,241,0.25)]"
@@ -681,7 +681,7 @@ export default function StudyFlashcard({
           <div className="text-center py-6 sm:py-8 space-y-5 sm:space-y-6 relative z-10 animate-in fade-in zoom-in-95 duration-300">
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-2xl animate-pulse" />
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-emerald-500/20 via-indigo-500/20 to-slate-900 border border-emerald-500/40 rounded-3xl flex items-center justify-center text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)] rotate-3">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-emerald-500/20 via-indigo-500/20 to-slate-900 border border-emerald-500/40 rounded-2xl flex items-center justify-center text-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.2)] rotate-3">
                 <Award
                   size={36}
                   className="sm:w-10 sm:h-10"
@@ -722,8 +722,8 @@ export default function StudyFlashcard({
             )}
 
             {levelUpData?.leveledUp && (
-              <div className="mx-auto max-w-md rounded-2xl border border-purple-500/40 bg-gradient-to-r from-purple-900/50 via-indigo-900/50 to-purple-900/50 p-4 shadow-[0_0_25px_rgba(168,85,247,0.3)] animate-bounce">
-                <p className="text-xs font-black tracking-wider text-purple-300 uppercase">
+              <div className="mx-auto max-w-md rounded-2xl border border-indigo-500/40 bg-indigo-950/60 p-4 shadow-lg animate-bounce">
+                <p className="text-xs font-black tracking-wider text-indigo-300 uppercase">
                   🎉 LEVEL UP ALCANÇADO!
                 </p>
                 <p className="mt-1 text-sm font-bold text-white">
@@ -735,7 +735,7 @@ export default function StudyFlashcard({
               </div>
             )}
 
-            <div className={`grid grid-cols-2 gap-3 max-w-xs mx-auto p-3.5 sm:p-4 rounded-3xl backdrop-blur-md shadow-inner ${
+            <div className={`grid grid-cols-2 gap-3 max-w-xs mx-auto p-3.5 sm:p-4 rounded-2xl shadow-inner ${
               isLight
                 ? "bg-slate-50 border border-slate-200"
                 : "bg-slate-900/40 border border-white/5"
@@ -1017,17 +1017,16 @@ export default function StudyFlashcard({
               >
                 {/* FRENTE DO CARD */}
                 <div
-                  className={`absolute inset-0 w-full h-full rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl transition-colors duration-300 ${
+                  className={`absolute inset-0 w-full h-full rounded-2xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center transition-colors duration-300 ${
                     isLight
                       ? "bg-white border border-slate-200/90 shadow-[0_12px_40px_-10px_rgba(15,23,42,0.1)] border-t-indigo-500"
-                      : "bg-gradient-to-b from-[#0c101c] via-[#080b15] to-[#05070f] border border-indigo-500/25 group-hover:border-indigo-500/50 shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-indigo-400/40"
+                      : "bg-[#090d16] border border-indigo-500/25 group-hover:border-indigo-500/50 shadow-lg border-t-indigo-400/40"
                   }`}
                   style={{
                     backfaceVisibility: "hidden",
                     WebkitBackfaceVisibility: "hidden",
                   }}
                 >
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
                   <div className="w-full flex justify-between items-center relative z-10">
                     <span className="text-[10px] sm:text-xs font-extrabold tracking-widest text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-3 py-1 rounded-lg uppercase backdrop-blur-md">
@@ -1212,10 +1211,10 @@ export default function StudyFlashcard({
 
                 {/* VERSO DO CARD */}
                 <div
-                  className={`absolute inset-0 w-full h-full rounded-2xl sm:rounded-3xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center backdrop-blur-2xl transition-colors duration-300 ${
+                  className={`absolute inset-0 w-full h-full rounded-2xl p-4 sm:p-10 md:p-12 flex flex-col justify-between text-center transition-colors duration-300 ${
                     isLight
                       ? "bg-white border-2 border-emerald-500/40 shadow-[0_15px_35px_rgba(16,185,129,0.1)] text-slate-900"
-                      : "bg-gradient-to-b from-[#09151c] via-[#080b15] to-[#05070f] border border-emerald-500/30 rounded-2xl sm:rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-t-emerald-400/40 text-slate-100"
+                      : "bg-[#090d16] border border-emerald-500/30 rounded-2xl shadow-lg border-t-emerald-400/40 text-slate-100"
                   }`}
                   style={{
                     backfaceVisibility: "hidden",

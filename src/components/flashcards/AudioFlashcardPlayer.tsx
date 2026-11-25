@@ -427,12 +427,9 @@ export function AudioFlashcardPlayer({
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative w-full max-w-lg bg-white dark:bg-[#07090e] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl p-6 overflow-hidden z-10 flex flex-col gap-6"
+          className="relative w-full max-w-lg bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-2xl p-6 overflow-hidden z-10 flex flex-col gap-6"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Luz Ambient Neon */}
-          <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full bg-indigo-500/15 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-cyan-500/15 blur-3xl" />
 
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-4 relative z-10">
@@ -509,7 +506,7 @@ export function AudioFlashcardPlayer({
           </div>
 
           {/* Visualizador de Ondas Sonoras Neon */}
-          <div className="relative z-10 py-4 flex flex-col items-center justify-center gap-3 bg-slate-50/80 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/5 rounded-3xl p-5">
+          <div className="relative z-10 py-4 flex flex-col items-center justify-center gap-3 bg-slate-50/80 dark:bg-[#030712] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5">
             {/* Equalizador animado */}
             <div className="flex items-center gap-1.5 h-12">
               {[40, 75, 50, 95, 60, 85, 45, 100, 65, 80, 55, 90, 70, 45].map((h, i) => (
@@ -647,7 +644,7 @@ export function AudioFlashcardPlayer({
                 triggerHaptic("medium");
                 setIsPlaying((prev) => !prev);
               }}
-              className="p-5 rounded-3xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer"
+              className="p-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer"
               title={isPlaying ? "Pausar estudo" : "Iniciar estudo hands-free"}
             >
               {isPlaying ? <Pause size={24} /> : <Play size={24} className="translate-x-0.5" />}
@@ -680,9 +677,8 @@ export function AudioFlashcardPlayer({
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 15 }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-md bg-[#07090e] border border-amber-500/30 rounded-3xl p-6 shadow-2xl text-slate-100 space-y-4 overflow-hidden"
+                className="relative w-full max-w-md bg-[#090d16] border border-amber-500/30 rounded-2xl p-6 shadow-2xl text-slate-100 space-y-4 overflow-hidden"
               >
-                <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-amber-500/15 blur-3xl" />
 
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div className="flex items-center gap-2">

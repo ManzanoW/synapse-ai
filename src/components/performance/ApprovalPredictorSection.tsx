@@ -407,7 +407,7 @@ export function ApprovalPredictorSection({
 
   if (loading) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 md:p-8 backdrop-blur-2xl animate-pulse space-y-4">
+      <div className="rounded-2xl border border-slate-800/80 bg-[#090d16] p-6 md:p-8 animate-pulse space-y-4">
         <div className="h-5 w-48 bg-white/5 rounded-full" />
         <div className="h-24 w-full bg-white/5 rounded-2xl" />
       </div>
@@ -419,10 +419,8 @@ export function ApprovalPredictorSection({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-slate-900/70 border border-slate-800/80 p-5 sm:p-7 backdrop-blur-2xl space-y-6 shadow-xl">
-      {/* Luz Neon Sutil Superior */}
-      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/40 to-transparent" />
-      <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl" />
+    <div className="relative overflow-hidden rounded-2xl bg-[#090d16] border border-slate-800/80 p-5 sm:p-7 space-y-6 shadow-xs">
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
 
       {/* 1. CABEÇALHO HERO & SELETOR DE NOTA DE CORTE */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-5">
@@ -726,8 +724,7 @@ export function ApprovalPredictorSection({
           </div>
 
           {/* TERMÔMETRO DE CORTE REAL & DISTÂNCIA DAS VAGAS */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-5 relative overflow-hidden">
-            <div className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full bg-violet-600/10 blur-3xl" />
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#030712] border border-slate-800/80 space-y-5 relative overflow-hidden">
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
               <div className="flex items-center gap-2.5">
@@ -1152,12 +1149,12 @@ export function ApprovalPredictorSection({
             </div>
 
             {/* P50 */}
-            <div className="p-4 rounded-2xl bg-linear-to-b from-violet-950/40 to-slate-900/80 border border-violet-500/30 shadow-xl space-y-1">
+            <div className="p-4 rounded-2xl bg-[#030712] border border-indigo-500/30 shadow-xs space-y-1">
               <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="font-bold text-violet-300">Cenário Realista</span>
-                <span className="text-[9px] text-violet-400 font-bold">Mais Provável</span>
+                <span className="font-bold text-indigo-300">Cenário Realista</span>
+                <span className="text-[9px] text-indigo-400 font-bold">Mais Provável</span>
               </div>
-              <div className="text-3xl font-black font-mono text-violet-200">
+              <div className="text-3xl font-black font-mono text-indigo-200">
                 {monteCarloResult.p50}%
               </div>
               <p className="text-[10px] text-slate-400 leading-snug">
@@ -1195,7 +1192,7 @@ export function ApprovalPredictorSection({
           </div>
 
           {/* VISUALIZAÇÃO GRÁFICA: CURVA DE PROBABILIDADE */}
-          <div className="p-6 rounded-3xl bg-slate-950/80 border border-white/10 shadow-2xl space-y-4">
+          <div className="p-6 rounded-2xl bg-[#030712] border border-slate-800/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="space-y-0.5">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2">
@@ -1238,7 +1235,7 @@ export function ApprovalPredictorSection({
                       className={`w-full rounded-t-xs transition-all duration-300 group-hover:scale-y-105 ${
                         bin.isApproved
                           ? "bg-gradient-to-t from-emerald-500/30 via-emerald-500/60 to-emerald-400 border-t-2 border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                          : "bg-gradient-to-t from-violet-950/20 via-violet-600/30 to-violet-500/50 border-t border-violet-400/40"
+                          : "bg-gradient-to-t from-indigo-950/20 via-indigo-600/30 to-indigo-500/50 border-t border-indigo-400/40"
                       }`}
                     />
                   </div>
