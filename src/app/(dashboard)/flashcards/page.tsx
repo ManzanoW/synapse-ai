@@ -22,7 +22,7 @@ import {
 import { getFlashcardsAnalyticsAction } from "@/actions/flashcard-actions";
 import { FlashcardsHeroActions } from "@/components/flashcards/FlashcardsHeroActions";
 import { FlashcardsSpotlight } from "@/components/flashcards/FlashcardsSpotlight";
-import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
+import { EditalEmptyState } from "@/components/edital-empty-state";
 
 export default async function FlashcardsPage() {
   const session = await auth();
@@ -83,63 +83,38 @@ export default async function FlashcardsPage() {
   return (
     <div className="p-3 sm:p-6 md:p-8 max-w-7xl mx-auto text-slate-100 space-y-6 sm:space-y-8 selection:bg-indigo-500/30 font-sans pb-16">
       {totalSubjects === 0 ? (
-        <div className="min-h-[65vh] flex items-center justify-center py-4">
-          <div className="relative overflow-hidden max-w-3xl w-full bg-gradient-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
-            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-            
-            <div className="text-center space-y-3 relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10">
-                <BookOpen size={26} />
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
-                <Lock size={12} /> Primeiro Passo para Flashcards
-              </div>
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Configure seu Edital ou Escolha um Modelo Pronto
-              </h2>
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto">
-                Para a inteligência artificial gerar baralhos de repetição espaçada adaptados ao seu concurso, você precisa de matérias cadastradas. Ative um modelo pronto abaixo ou importe seu próprio edital.
-              </p>
-            </div>
-
-            <div className="relative z-10 pt-2">
-              <StarterEditalSelector />
-            </div>
-          </div>
-        </div>
+        <EditalEmptyState
+          title="Estruture seu Edital para Ativar os Flashcards FSRS"
+          description="Selecione uma carreira abaixo para carregar as disciplinas oficiais ou importe o documento específico da sua banca."
+        />
       ) : (
         <>
           {/* SPOTLIGHT DICA DE PRIMEIRO ACESSO */}
           <FlashcardsSpotlight />
 
           {/* HERO BANNER */}
-          <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-indigo-950/90 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-5 sm:p-8 shadow-2xl backdrop-blur-2xl">
-            <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-
+          <div className="relative overflow-hidden rounded-2xl bg-[#090d16] border border-slate-800/80 p-5 sm:p-8 shadow-xl">
             <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 sm:gap-8">
               <div className="space-y-3 max-w-2xl w-full">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-semibold">
                   <Zap
                     size={13}
-                    className="fill-indigo-400 animate-pulse text-indigo-400"
+                    className="text-indigo-400"
                   />
-                  <span>Sessão de Hoje Disponível</span>
+                  <span>Revisão Espaçada FSRS</span>
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-                  Pronto para reforçar sua{" "}
-                  <span className="bg-gradient-to-r from-indigo-400 via-indigo-300 to-violet-400 bg-clip-text text-transparent">
-                    memória?
-                  </span>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight">
+                  Consolidação de Memória Ativa
                 </h1>
 
-                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
                   Você possui{" "}
-                  <strong className="text-indigo-300 font-bold">
+                  <strong className="text-indigo-300 font-semibold">
                     {dueCardsCount}{" "}
                     {dueCardsCount === 1 ? "cartão" : "cartões"}
                   </strong>{" "}
-                  prontos para revisar hoje e não esquecer na prova.
+                  programados para revisão hoje pelo algoritmo de retenção.
                 </p>
 
                 <div className="pt-1 flex items-center gap-4">
@@ -150,9 +125,9 @@ export default async function FlashcardsPage() {
                         {Math.min(dueCardsCount, 20)} / 20 cartões
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                    <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
                       <div
-                        className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full shadow-sm shadow-indigo-500/50 transition-all duration-500"
+                        className="h-full bg-linear-to-r from-indigo-500 to-cyan-400 rounded-full transition-all duration-500"
                         style={{
                           width: `${Math.min(100, (dueCardsCount / 20) * 100)}%`,
                         }}
@@ -191,9 +166,9 @@ export default async function FlashcardsPage() {
             </div>
 
             {recentDecks.length === 0 ? (
-              <div className="p-8 sm:p-12 text-center bg-slate-900/40 border border-indigo-500/20 rounded-3xl backdrop-blur-xl space-y-4 max-w-xl mx-auto shadow-xl">
-                <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mx-auto shadow-lg shadow-indigo-500/10">
-                  <Layers size={28} />
+              <div className="p-8 sm:p-10 text-center bg-[#090d16] border border-slate-800/80 rounded-2xl space-y-4 max-w-xl mx-auto shadow-xl">
+                <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mx-auto">
+                  <Layers size={24} />
                 </div>
                 <div className="space-y-1.5">
                   <h3 className="text-slate-100 font-bold text-base sm:text-lg tracking-tight">

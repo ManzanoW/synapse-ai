@@ -66,7 +66,7 @@ import { QuestionScannerModal } from "@/components/questions/QuestionScannerModa
 import { streamSimuladoGeneration } from "@/lib/sse-client";
 
 import { PrintableQuestions } from "@/components/questions/printable-questions";
-import { StarterEditalSelector } from "@/components/edital/StarterEditalSelector";
+import { EditalEmptyState } from "@/components/edital-empty-state";
 import {
   triggerAiQuotaRefresh,
   triggerOptimisticEnergyConsumption,
@@ -179,9 +179,9 @@ function formatTimer(totalSeconds: number): string {
 function TabCreateSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="relative overflow-hidden backdrop-blur-xl bg-gradient-to-br from-violet-950/30 via-zinc-900/60 to-black/80 border border-violet-500/20 rounded-2xl p-6 sm:p-7">
+      <div className="relative overflow-hidden bg-[#090d16] border border-slate-800/80 rounded-2xl p-6 sm:p-7">
         <div className="space-y-4 max-w-xl">
-          <div className="h-5 w-44 rounded-full bg-violet-500/15 border border-violet-500/30" />
+          <div className="h-5 w-44 rounded-md bg-slate-800/80 border border-slate-700/60" />
           <div className="h-8 w-4/5 rounded-xl bg-white/5" />
           <div className="h-4 w-3/5 rounded-lg bg-white/5" />
         </div>
@@ -192,17 +192,17 @@ function TabCreateSkeleton() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="h-52 rounded-2xl bg-zinc-900/50 border border-violet-500/20 backdrop-blur-xl p-6 flex flex-col justify-between">
+        <div className="h-52 rounded-2xl bg-[#090d16] border border-slate-800/80 p-6 flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/30" />
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20" />
             <div className="h-5 w-44 rounded-lg bg-white/5" />
             <div className="h-3 w-56 rounded bg-white/5" />
           </div>
           <div className="h-9 w-full rounded-xl bg-white/5" />
         </div>
-        <div className="h-52 rounded-2xl bg-zinc-900/50 border border-indigo-500/20 backdrop-blur-xl p-6 flex flex-col justify-between">
+        <div className="h-52 rounded-2xl bg-[#090d16] border border-slate-800/80 p-6 flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/30" />
+            <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20" />
             <div className="h-5 w-44 rounded-lg bg-white/5" />
             <div className="h-3 w-56 rounded bg-white/5" />
           </div>
@@ -2138,31 +2138,12 @@ export default function QuestoesPage() {
               {isInitialLoading && subjects.length === 0 ? (
                 <TabCreateSkeleton />
               ) : subjects.length === 0 ? (
-                /* ETAPA OBRIGATÓRIA EDITAL - COM ATIVAÇÃO EM 1 CLIQUE */
-                <div className="min-h-[50vh] flex items-center justify-center py-4">
-                  <div className="relative overflow-hidden max-w-3xl w-full bg-linear-to-b from-[#0c101d] via-[#080b14] to-[#04060c] border border-amber-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
-                    <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-                    <div className="text-center space-y-3 relative z-10">
-                      <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-amber-500/10">
-                        <BookOpen size={28} />
-                      </div>
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
-                        <Lock size={12} /> Primeiro Passo para Simulados
-                      </div>
-                      <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                        Cadastre seu Edital ou Escolha um Modelo Pronto
-                      </h2>
-                      <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto">
-                        Para a inteligência artificial gerar questões personalizadas, você precisa de matérias cadastradas. Ative um modelo pronto em 1 clique abaixo ou importe seu próprio edital.
-                      </p>
-                    </div>
-
-                    <div className="relative z-10 pt-2">
-                      <StarterEditalSelector onSuccess={() => fetchSubjects()} />
-                    </div>
-                  </div>
-                </div>
+                /* ETAPA OBRIGATÓRIA EDITAL - DIRETÓRIO SPLIT-PANE */
+                <EditalEmptyState
+                  title="Estruture seu Edital para Gerar Simulados"
+                  description="Selecione uma carreira abaixo para carregar as disciplinas oficiais ou importe o documento específico da sua banca."
+                  onSuccess={() => fetchSubjects()}
+                />
               ) : (
                 <>
                   {questions.length === 0 ? (
@@ -2197,35 +2178,30 @@ export default function QuestoesPage() {
                           />
                         )}
 
-                      {/* 1. HERO SPOTLIGHT / COCKPIT PRINCIPAL */}
+                      {/* 1. COCKPIT PRINCIPAL DE TREINO */}
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="backdrop-blur-xl bg-white dark:bg-black dark:bg-gradient-to-br dark:from-violet-950/35 dark:via-zinc-900/70 dark:to-black/85 border border-slate-200 dark:border-violet-500/25 rounded-2xl p-6 sm:p-7 relative overflow-hidden shadow-xs dark:shadow-2xl hover:border-slate-300 dark:hover:border-violet-500/35 transition-all duration-300"
+                        transition={{ duration: 0.25 }}
+                        className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 sm:p-7 relative overflow-hidden shadow-xs dark:shadow-xl transition-all duration-200"
                       >
-                        <div className="pointer-events-none absolute -top-16 -right-16 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl" />
-
                         <div className="relative z-10 space-y-5">
-                          {/* Badge amigável */}
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-800 dark:bg-violet-500/10 dark:border-violet-500/30 dark:text-violet-300 backdrop-blur-md shadow-xs">
-                            <Sparkles
-                              size={12}
-                              className="text-violet-600 dark:text-violet-400 animate-pulse"
-                            />
-                            <span className="text-[10px] font-mono font-bold tracking-widest text-violet-700 dark:text-violet-300 uppercase">
-                              PRÁTICA RÁPIDA • GABARITO COMENTADO NA HORA
+                          {/* Badge executiva */}
+                          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-800 dark:bg-indigo-500/10 dark:border-indigo-500/20 dark:text-indigo-300">
+                            <Target size={12} className="text-indigo-600 dark:text-indigo-400" />
+                            <span className="text-[10px] font-mono font-bold tracking-wider uppercase">
+                              Prática Ativa • Gabarito Comentado por Banca
                             </span>
                           </div>
 
-                          {/* Título, Descrição & Botão Principal de 1 Clique */}
+                          {/* Título, Descrição & Botões Principais */}
                           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                             <div className="space-y-1.5 max-w-xl">
-                              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900 dark:text-transparent dark:bg-gradient-to-r dark:from-white dark:via-zinc-200 dark:to-zinc-400 dark:bg-clip-text leading-tight">
-                                Vamos treinar questões agora?
+                              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+                                Treino Direcionado ao seu Edital
                               </h2>
-                              <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed">
-                                Clique no botão ao lado para começar 10 questões recomendadas para o seu concurso, ou escolha uma matéria específica.
+                              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Inicie um bloco rápido de 10 questões calibradas para o seu cargo ou configure um simulado completo por disciplina.
                               </p>
                             </div>
 
@@ -2233,77 +2209,78 @@ export default function QuestoesPage() {
                               <button
                                 type="button"
                                 onClick={() => handleQuickQuiz({ qtd: 10 })}
-                                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-violet-600/30 transition-all active:scale-95 cursor-pointer"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm shadow-md shadow-indigo-950/40 transition-all active:scale-95 cursor-pointer"
                               >
-                                <Play size={16} className="fill-white" />
-                                <span>▶️ Treino Rápido (10 Q)</span>
+                                <Play size={15} className="fill-white" />
+                                <span>Treino Rápido (10 Q)</span>
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => handleStartFullMockExam({ totalQtd: 30 })}
-                                className="inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-linear-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-xs sm:text-sm shadow-lg shadow-amber-600/30 transition-all active:scale-95 cursor-pointer border border-amber-400/30"
+                                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-semibold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer border border-amber-500/30"
                                 title="Gera um simulado completo de 30 questões com distribuição proporcional aos pesos das matérias do edital"
                               >
-                                <Award size={16} className="text-amber-100" />
-                                <span>🏆 Simulado Prova Real (Edital Completo)</span>
+                                <Award size={15} className="text-amber-500 dark:text-amber-400" />
+                                <span>Simulado Prova Real (30 Q)</span>
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => setIsAIModalOpen(true)}
-                                className="inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200 dark:border-white/15 text-slate-800 dark:text-white font-bold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer"
+                                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 font-semibold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer"
                               >
-                                <Sparkles size={15} className="text-violet-500 dark:text-violet-400" />
+                                <BookOpen size={14} className="text-indigo-500 dark:text-indigo-400" />
                                 <span>Escolher Matéria</span>
                               </button>
                             </div>
                           </div>
 
-                          {/* 4 Métricas Integradas no Cockpit */}
-                          <div className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 border-t border-slate-100 dark:border-white/5">
+                          {/* 4 Métricas Integradas no Cockpit (Ocultas enquanto totalAnswered === 0) */}
+                          {practiceMetrics.totalAnswered > 0 && (
+                          <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 border-t border-slate-100 dark:border-slate-800/80">
                             {/* 1. Precisão Média */}
-                            <div className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200 dark:border-violet-500/20 backdrop-blur-md shadow-2xs">
-                              <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400 text-xs mb-1">
+                            <div className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
                                 <span className="text-[11px] font-medium">Precisão Média</span>
-                                <Target size={13} className="text-violet-600 dark:text-violet-400" />
+                                <Target size={13} className="text-indigo-600 dark:text-indigo-400" />
                               </div>
                               <span className="text-slate-900 dark:text-white font-bold font-mono text-base sm:text-lg">
                                 {practiceMetrics.averageAccuracy}%
                               </span>
-                              <div className="w-full bg-slate-200/80 dark:bg-white/5 h-1 rounded-full mt-2 overflow-hidden">
+                              <div className="w-full bg-slate-200/80 dark:bg-slate-900 h-1 rounded-full mt-2 overflow-hidden">
                                 <div
-                                  className="h-full bg-gradient-to-r from-violet-500 to-emerald-400 rounded-full transition-all duration-500"
+                                  className="h-full bg-linear-to-r from-indigo-500 to-cyan-400 rounded-full transition-all duration-500"
                                   style={{ width: `${practiceMetrics.averageAccuracy}%` }}
                                 />
                               </div>
                             </div>
 
                             {/* 2. Questões Resolvidas */}
-                            <div className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200 dark:border-violet-500/20 backdrop-blur-md shadow-2xs">
-                              <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400 text-xs mb-1">
+                            <div className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
                                 <span className="text-[11px] font-medium">Resolvidas</span>
-                                <Zap size={13} className="text-violet-600 dark:text-violet-400" />
+                                <Zap size={13} className="text-cyan-600 dark:text-cyan-400" />
                               </div>
                               <span className="text-slate-900 dark:text-white font-bold font-mono text-base sm:text-lg">
                                 {practiceMetrics.totalAnswered}
                               </span>
-                              <span className="text-[10px] text-slate-500 dark:text-zinc-400 mt-1">questões registradas</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">questões registradas</span>
                             </div>
 
                             {/* 3. Sequência Ativa */}
-                            <div className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-zinc-900/60 border border-amber-200 dark:border-amber-500/20 backdrop-blur-md shadow-2xs">
-                              <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400 text-xs mb-1">
+                            <div className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
                                 <span className="text-[11px] font-medium">Ofensiva</span>
                                 <Flame size={13} className="text-amber-500 dark:text-amber-400" />
                               </div>
                               <span className="text-amber-600 dark:text-amber-400 font-bold font-mono text-base sm:text-lg">
                                 {gamificationStats?.streak?.currentDays ?? 0}{" "}
-                                <span className="text-xs font-normal text-slate-500 dark:text-zinc-400">
+                                <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                                   {gamificationStats?.streak?.currentDays === 1 ? "dia" : "dias"}
                                 </span>
                               </span>
-                              <span className="text-[10px] text-slate-500 dark:text-zinc-400 mt-1">ritmo contínuo</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">ritmo contínuo</span>
                             </div>
 
                             {/* 4. Caderno de Erros */}
@@ -2315,21 +2292,22 @@ export default function QuestoesPage() {
                                   router.push("/notebook");
                                 }
                               }}
-                              className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-zinc-900/60 border border-rose-200 dark:border-rose-500/20 hover:border-rose-300 dark:hover:border-rose-500/40 hover:bg-rose-50/50 dark:hover:bg-rose-950/10 backdrop-blur-md cursor-pointer transition-all shadow-2xs"
+                              className="flex flex-col p-3 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-500/40 cursor-pointer transition-all shadow-2xs"
                             >
-                              <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400 text-xs mb-1">
+                              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
                                 <span className="text-[11px] font-medium">Caderno de Erros</span>
                                 <ShieldAlert size={13} className="text-rose-500 dark:text-rose-400" />
                               </div>
                               <span className="text-rose-600 dark:text-rose-400 font-bold font-mono text-base sm:text-lg">
                                 {errorNotebookMetrics.pendingErrors}{" "}
-                                <span className="text-xs font-normal text-slate-500 dark:text-zinc-400">pendentes</span>
+                                <span className="text-xs font-normal text-slate-500 dark:text-slate-400">pendentes</span>
                               </span>
                               <span className="text-[10px] text-rose-600/90 dark:text-rose-400/80 mt-1 flex items-center gap-1 font-semibold">
                                 Treinar erros <ChevronRight size={10} />
                               </span>
                             </div>
                           </div>
+                          )}
                         </div>
                       </motion.div>
 
