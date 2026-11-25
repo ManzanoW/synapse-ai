@@ -1356,8 +1356,7 @@ export default function WeekPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               <div className="lg:col-span-2 space-y-6">
                 {activeDaySchedule && (
-                  <div className="bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-950 dark:to-indigo-950/30 border border-slate-200 dark:border-slate-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-7 space-y-5 backdrop-blur-xl shadow-xs dark:shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                  <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 sm:p-7 space-y-5 shadow-xs relative overflow-hidden">
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800/60 pb-4 relative z-10">
                       <div className="space-y-1">
@@ -1602,7 +1601,7 @@ export default function WeekPage() {
               </div>
 
               {/* Sidebar Distribuição */}
-              <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-6 space-y-5 lg:sticky lg:top-6 backdrop-blur-md shadow-xs dark:shadow-2xl">
+              <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 space-y-5 lg:sticky lg:top-6 shadow-xs">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                     <TrendingUp size={16} className="text-indigo-600 dark:text-indigo-400" />
@@ -1716,7 +1715,7 @@ export default function WeekPage() {
       {/* Focus Timer Modal */}
       {focusSubject && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm w-full p-6 space-y-6 shadow-2xl text-center relative overflow-hidden">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-6 shadow-2xl text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 left-0 h-1 bg-emerald-500" />
 
             <div>
@@ -1789,7 +1788,7 @@ export default function WeekPage() {
       {/* Settings Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Settings2 size={18} className="text-indigo-600 dark:text-indigo-400" />
@@ -1890,7 +1889,7 @@ export default function WeekPage() {
       {/* Swap Modal */}
       {swapModalOpen && subjectToSwap && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1981,7 +1980,7 @@ export default function WeekPage() {
       {/* Modal de Confirmação: Resetar Semana */}
       {isResetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-slate-900 border border-amber-500/30 rounded-3xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-md bg-[#090d16] border border-amber-500/30 rounded-2xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">

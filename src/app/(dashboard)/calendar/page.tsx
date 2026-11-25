@@ -169,7 +169,7 @@ export default function CalendarPage() {
 
         {/* KPIS DE RESUMO */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-          <div className="bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200/80 dark:border-slate-800/80 p-4 sm:p-5 rounded-2xl shadow-xs flex items-center justify-between">
             <div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider">
                 Total Este Mês
@@ -186,7 +186,7 @@ export default function CalendarPage() {
           <button
             type="button"
             onClick={() => handleDayClick(realTodayStr, now.getDate())}
-            className="text-left bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 hover:border-indigo-500/40 p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between transition-all cursor-pointer group"
+            className="text-left bg-white dark:bg-[#090d16] border border-slate-200/80 dark:border-slate-800/80 hover:border-indigo-500/40 p-4 sm:p-5 rounded-2xl shadow-xs flex items-center justify-between transition-all cursor-pointer group"
           >
             <div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider flex items-center gap-1.5">
@@ -207,7 +207,7 @@ export default function CalendarPage() {
           <button
             type="button"
             onClick={() => handleDayClick("overdue", "overdue")}
-            className={`text-left bg-white/90 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border p-4 sm:p-5 rounded-3xl backdrop-blur-2xl shadow-sm dark:shadow-2xl flex items-center justify-between transition-all cursor-pointer group ${
+            className={`text-left bg-white dark:bg-[#090d16] border p-4 sm:p-5 rounded-2xl shadow-xs flex items-center justify-between transition-all cursor-pointer group ${
               overdueCount > 0
                 ? "border-rose-500/40 hover:border-rose-500"
                 : "border-slate-200/80 dark:border-white/10 hover:border-rose-500/40"
@@ -269,7 +269,7 @@ export default function CalendarPage() {
         </div>
 
         {/* GRADE DO CALENDÁRIO */}
-        <div className="bg-white/80 dark:bg-gradient-to-br dark:from-[#090d16] dark:to-[#05070e] border border-slate-200/80 dark:border-white/10 rounded-3xl p-3 sm:p-6 shadow-sm dark:shadow-2xl backdrop-blur-2xl">
+        <div className="bg-white dark:bg-[#090d16] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-3 sm:p-6 shadow-xs">
           {loading && (
             <div className="flex items-center justify-center gap-2 py-2 text-xs text-indigo-400 font-bold">
               <Loader2 size={14} className="animate-spin" /> Sincronizando
@@ -365,7 +365,7 @@ export default function CalendarPage() {
           onClick={() => setSelectedDay(null)}
         >
           <div
-            className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-white/10 rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl relative space-y-5"
+            className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 w-full max-w-lg shadow-2xl relative space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-white/10 pb-4">
