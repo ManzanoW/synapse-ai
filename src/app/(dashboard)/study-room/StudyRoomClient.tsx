@@ -922,18 +922,7 @@ export default function StudyRoomClient({
       {/* Grid Central: Cockpit Pomodoro + Checklist */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Painel do Pomodoro (2 Colunas no Desktop) */}
-        <div className="lg:col-span-2 bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl flex flex-col items-center justify-between text-center relative overflow-hidden">
-          {/* Efeito Glow de Fundo */}
-          <div
-            className={`absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl pointer-events-none transition-all duration-700 ${
-              isFocusMode ? "bg-indigo-600/10" : "bg-emerald-600/10"
-            }`}
-          />
-          <div
-            className={`absolute -bottom-24 -right-24 w-72 h-72 rounded-full blur-3xl pointer-events-none transition-all duration-700 ${
-              isFocusMode ? "bg-violet-600/10" : "bg-cyan-600/10"
-            }`}
-          />
+        <div className="lg:col-span-2 bg-[#090d16] border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-xl flex flex-col items-center justify-between text-center relative overflow-hidden">
 
           {/* Abas de Modo (Foco 25m, Foco 50m, Pausa Curta, Pausa Longa) */}
           <div className="w-full flex flex-wrap justify-center gap-1.5 sm:gap-2 p-1 bg-slate-950/60 border border-slate-800/80 rounded-2xl max-w-lg mb-6">
