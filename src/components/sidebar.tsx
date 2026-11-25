@@ -537,38 +537,50 @@ export default function Sidebar({ user }: SidebarProps) {
 
       <aside
         className={`
-          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#09090B] border-r border-slate-200 dark:border-zinc-800/80 
-          text-slate-800 dark:text-zinc-200 flex flex-col p-3.5 font-sans antialiased shrink-0 select-none
+          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#07090e] border-r border-slate-200 dark:border-white/6 
+          text-slate-800 dark:text-slate-200 flex flex-col p-3.5 font-sans antialiased shrink-0 select-none
           fixed md:sticky top-0 left-0 z-50 transition-transform duration-300 ease-in-out 
           ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
         {/* Cabeçalho Fixo & Busca */}
-        <div className="shrink-0 space-y-2.5 pb-1.5">
-          {/* Brand Header Editorial Alinhado à Esquerda (Estilo Linear / Raycast) */}
-          <div className="relative flex items-center justify-between pt-0.5 px-1.5 select-none">
-            <div className="inline-flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-mono text-xs font-black tracking-tighter">
-                S
-              </div>
-              <h1 className="font-bold text-slate-900 dark:text-zinc-100 text-base tracking-tight">
-                Synapse
-              </h1>
-              <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-slate-100 dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800">
-                Concursos
-              </span>
-            </div>
-
+        <div className="shrink-0 space-y-3 pb-1.5">
+          {/* Logo Oficial Synapse AI (Alinhado à identidade da Landing Page) */}
+          <div className="relative flex flex-col items-center pt-0.5 px-2 text-center select-none">
             {/* Botão de Fechar no Mobile */}
             <button
               type="button"
               onClick={closeSidebar}
-              className="md:hidden p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="md:hidden absolute right-0 top-0 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Fechar menu"
               aria-label="Fechar menu"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
+
+            <div className="inline-flex items-center justify-center gap-2">
+              <h1 className="font-extrabold text-slate-900 dark:text-slate-50 text-[1.75rem] tracking-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]">
+                Synapse
+              </h1>
+
+              <div className="inline-flex items-center gap-1">
+                <span className="font-black text-[1.75rem] tracking-tight bg-linear-to-r from-indigo-300 via-indigo-100 to-white bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(129,140,248,0.5)]">
+                  AI
+                </span>
+
+                <div className="relative flex items-center justify-center w-2 h-2 mt-1.5">
+                  <span className="absolute w-2 h-2 rounded-full bg-indigo-400/40 animate-ping" />
+                  <svg
+                    viewBox="0 0 8 8"
+                    className="w-1.5 h-1.5 drop-shadow-[0_0_6px_#818cf8]"
+                  >
+                    <circle cx="4" cy="4" r="3.5" className="fill-indigo-200" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-28 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent mt-2 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
           </div>
 
           {/* Barra de Busca Rápida (Full Width - Ampla, Acessível e Confortável) */}
@@ -764,20 +776,20 @@ export default function Sidebar({ user }: SidebarProps) {
                             }
                             closeSidebar();
                           }}
-                          className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all duration-150 ${
+                          className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
                             isActive
                               ? isSpecial
                                 ? "text-amber-800 bg-amber-500/15 font-semibold border border-amber-500/30 dark:text-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20"
-                                : "text-slate-900 bg-slate-100 font-semibold dark:text-white dark:bg-zinc-800/90"
-                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-900/60"
+                                : "text-indigo-700 bg-indigo-50 font-semibold dark:text-indigo-200 dark:bg-indigo-500/10"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/4"
                           }`}
                         >
                           {isActive && (
                             <div
-                              className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r ${
+                              className={`absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full ${
                                 isSpecial
                                   ? "bg-amber-500"
-                                  : "bg-slate-900 dark:bg-zinc-100"
+                                  : "bg-indigo-500 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
                               }`}
                             />
                           )}
@@ -789,8 +801,8 @@ export default function Sidebar({ user }: SidebarProps) {
                               isActive
                                 ? isSpecial
                                   ? "text-amber-600 dark:text-amber-400"
-                                  : "text-slate-900 dark:text-zinc-100"
-                                : "text-slate-400 group-hover:text-slate-700 dark:text-zinc-500 dark:group-hover:text-zinc-300"
+                                  : "text-indigo-600 dark:text-indigo-400"
+                                : "text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300"
                             }`}
                           />
 
@@ -798,7 +810,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
                           {item.badge && (
                             <span
-                              className={`ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded border tracking-tight shrink-0 transition-colors ${getBadgeStyles(
+                              className={`ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded-full border tracking-tight shrink-0 transition-colors ${getBadgeStyles(
                                 item.badge
                               )}`}
                             >
@@ -838,74 +850,101 @@ export default function Sidebar({ user }: SidebarProps) {
           </nav>
         </div>
 
-        {/* 3. Rodapé Fixo: Usuário & Telemetria Compacta (Estilo Linear / Raycast) */}
-        <div className="shrink-0 pt-2 pb-[max(env(safe-area-inset-bottom),4px)] mt-auto border-t border-slate-100 dark:border-zinc-800/80">
-            <div className={`group relative overflow-hidden rounded-lg ${
+        {/* 3. Rodapé Fixo: Card de Gamificação & Usuário com Identidade Visual Synapse AI */}
+        <div className="shrink-0 pt-2 pb-[max(env(safe-area-inset-bottom),4px)] mt-auto border-t border-slate-100 dark:border-white/5">
+            <div className={`group relative overflow-hidden rounded-2xl ${
               isLight
                 ? "bg-white border border-slate-200/90 shadow-xs"
-                : "bg-zinc-900/50 border border-zinc-800/80"
-            } transition-all duration-200`}>
-              <div className="p-2.5 space-y-2 relative z-10">
+                : "bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-xl"
+            } transition-all duration-300 hover:border-indigo-400/40`}>
+              <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/50 to-transparent" />
+
+              <div className="p-3 space-y-2.5 relative z-10">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-3">
-                    <Loader2 size={15} className="animate-spin text-zinc-400" />
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 size={16} className="animate-spin text-indigo-400" />
                   </div>
                 ) : (
                   <>
-                    {/* Linha Superior Compacta: Nível + XP + Ofensiva */}
-                    <div className="flex items-center justify-between gap-1.5 text-[11px]">
+                    {/* Linha Superior: Ícone da Patente + Nível + Ofensiva */}
+                    <div className="flex items-center justify-between gap-1.5">
                       <Link
                         href={getHref("/achievements")}
                         onClick={closeSidebar}
-                        title="Ver minhas conquistas"
-                        className="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer group/ach"
+                        title="Ver minhas conquistas e medalhas"
+                        className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group/ach"
                       >
-                        <Award size={13} className="text-zinc-400 shrink-0" />
-                        <span className={`font-semibold ${isLight ? "text-slate-800" : "text-zinc-200"} group-hover/ach:text-white transition-colors truncate`}>
-                          Nível {currentLevel}
-                        </span>
-                        <span className="text-[10px] font-mono text-zinc-500">
-                          • {gamification?.totalXp || 0} XP
-                        </span>
+                        <div
+                          className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/ach:scale-105 ${
+                            gamification?.prestigeTier?.badgeColor ||
+                            (isLight
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-600"
+                              : "bg-indigo-500/15 border-indigo-500/30 text-indigo-400")
+                          }`}
+                        >
+                          <Award
+                            size={15}
+                            strokeWidth={2.2}
+                            className={
+                              gamification?.prestigeTier?.iconColor ||
+                              (isLight ? "text-indigo-600" : "text-indigo-400")
+                            }
+                          />
+                        </div>
+                        <div className="flex flex-col justify-center min-w-0 pr-1 flex-1">
+                          <span className={`text-[9.5px] font-mono font-bold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"} leading-none truncate block`}>
+                            {(gamification?.title || "Iniciante Focado").replace(/NEÓFITO DOS ESTUDOS/i, "Iniciante Focado")}
+                          </span>
+                          <span className={`text-xs font-black ${isLight ? "text-slate-900" : "text-white"} group-hover/ach:text-indigo-500 dark:group-hover/ach:text-indigo-300 transition-colors tracking-tight leading-none mt-1`}>
+                            Nível {currentLevel}
+                          </span>
+                        </div>
                       </Link>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {canAscendPrestige && (
-                          <button
-                            type="button"
-                            onClick={() => setIsPrestigeModalOpen(true)}
-                            title="Subir de Categoria de Estudos!"
-                            className="cursor-pointer flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-200 text-[9px] font-bold font-mono"
-                          >
-                            <Crown size={10} />
-                            <span>EVOLUIR</span>
-                          </button>
-                        )}
-
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[10px] font-mono font-semibold">
-                          <Flame size={11} className="text-amber-400" />
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/25 dark:text-rose-400 text-[11px] font-bold font-mono">
+                          <Flame
+                            size={12}
+                            className="fill-rose-500 text-rose-500"
+                          />
                           <span>{streak?.currentDays || 0}d</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Barra Fina de Progresso */}
-                    <div className={`h-1 w-full ${isLight ? "bg-slate-100" : "bg-zinc-950"} rounded-full overflow-hidden`}>
-                      <div
-                        className="h-full bg-zinc-300 rounded-full transition-all duration-500 ease-out"
-                        style={{
-                          width: `${Math.max(
-                            gamification?.progressPercentage ?? 0,
-                            4,
-                          )}%`,
-                        }}
-                      />
+                    {/* Linha Central: Barra de XP */}
+                    <div className="space-y-1 pt-0.5">
+                      <div className="flex items-center justify-between text-[10px] font-mono">
+                        <span className="flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
+                          <Zap
+                            size={11}
+                            className="fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400"
+                          />
+                          {gamification?.totalXp || 0}{" "}
+                          <span className="text-slate-500 dark:text-slate-400 font-normal">XP</span>
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400 font-bold text-[10px]">
+                          {gamification?.progressPercentage ?? 0}%
+                        </span>
+                      </div>
+
+                      <div className={`h-1 w-full ${isLight ? "bg-slate-100 border border-slate-200" : "bg-slate-950/90 border border-white/10"} rounded-full overflow-hidden`}>
+                        <div
+                          className="h-full bg-linear-to-r from-indigo-500 to-cyan-400 rounded-full transition-all duration-500 ease-out"
+                          style={{
+                            width: `${Math.max(
+                              gamification?.progressPercentage ?? 0,
+                              4,
+                            )}%`,
+                          }}
+                        />
+                      </div>
                     </div>
 
                     {/* Linha Divisória */}
-                    <div className={`h-px w-full ${isLight ? "bg-slate-200/80" : "bg-zinc-800/80"}`} />
+                    <div className={`h-px w-full ${isLight ? "bg-slate-200/80" : "bg-slate-800/80"} my-0.5`} />
 
-                    {/* Linha Inferior: Usuário, Avatar & Sair */}
+                    {/* Linha Inferior: Usuário, Avatar Teal, Plano & Sair */}
                     <div className="flex items-center justify-between gap-2 pt-0.5">
                       <Link
                         href={getHref("/profile")}
@@ -917,23 +956,32 @@ export default function Sidebar({ user }: SidebarProps) {
                           <Image
                             src={user.image}
                             alt={user.name || "Avatar"}
-                            width={30}
-                            height={30}
-                            className="w-7 h-7 rounded-md object-cover border border-zinc-700 shrink-0"
+                            width={32}
+                            height={32}
+                            className="w-8 h-8 rounded-xl object-cover border border-indigo-500/30 shrink-0"
                           />
                         ) : (
-                          <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-200 text-xs font-bold shrink-0">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-colors flex items-center justify-center text-white text-xs font-black shrink-0">
                             {getInitials(user?.name)}
                           </div>
                         )}
 
                         <div className="truncate min-w-0 flex-1">
-                          <p className={`text-[11.5px] font-semibold ${isLight ? "text-slate-900" : "text-zinc-200"} group-hover/user:text-white transition-colors truncate leading-tight`}>
+                          <p className={`text-[11.5px] font-bold ${isLight ? "text-slate-900" : "text-slate-100"} group-hover/user:text-indigo-400 transition-colors truncate leading-tight`}>
                             {user?.name || "Estudante"}
                           </p>
-                          <span className="text-[9.5px] font-mono text-zinc-500 block leading-tight truncate">
-                            {userPlan.replace(" 👑", "")}
-                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md font-mono text-[8.5px] font-extrabold uppercase tracking-wider leading-none ${
+                              userPlan === "PRO MEMBER"
+                                ? "bg-amber-100 border border-amber-300/80 text-amber-800 dark:bg-amber-500/20 dark:border-amber-500/30 dark:text-amber-300"
+                                : "bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/15 dark:border-indigo-500/30 dark:text-indigo-300"
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                userPlan === "PRO MEMBER" ? "bg-amber-500" : "bg-indigo-400"
+                              }`} />
+                              {userPlan}
+                            </span>
+                          </div>
                         </div>
                       </Link>
 
@@ -945,9 +993,9 @@ export default function Sidebar({ user }: SidebarProps) {
                         }}
                         aria-label="Sair da conta"
                         title="Sair da conta"
-                        className={`w-7 h-7 rounded-md ${isLight ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50" : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800"} transition-all shrink-0 cursor-pointer flex items-center justify-center`}
+                        className={`w-8 h-8 rounded-xl ${isLight ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50" : "text-slate-400 hover:text-rose-400 hover:bg-rose-500/15"} transition-all shrink-0 cursor-pointer flex items-center justify-center`}
                       >
-                        <LogOut size={14} />
+                        <LogOut size={15} />
                       </button>
                     </div>
                   </>

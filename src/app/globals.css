@@ -4,8 +4,8 @@
 
 :root {
   color-scheme: dark;
-  --background: #09090b;
-  --foreground: #f4f4f5;
+  --background: #030712;
+  --foreground: #f8fafc;
 }
 
 html.light, [data-theme="light"] {

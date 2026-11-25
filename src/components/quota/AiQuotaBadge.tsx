@@ -234,20 +234,22 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
           </div>
         </button>
       ) : (
-        <div className="group relative overflow-hidden rounded-lg bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800/80 p-2.5 transition-all duration-200">
-          {/* Linha Superior: Cota Diária + Contador */}
+        <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-[#090d16] border border-slate-200 dark:border-indigo-500/20 p-2.5 transition-all duration-200 shadow-xs">
+          {/* Linha Superior: Energia Sináptica + Contador */}
           <div className="flex items-center justify-between gap-2 relative z-10">
             <button
               type="button"
               onClick={() => setIsOpen(!isOpen)}
               aria-haspopup="dialog"
               aria-expanded={isOpen}
-              aria-label="Ver detalhes da Cota Diária"
-              className="flex items-center gap-1.5 group/title min-w-0 text-left cursor-pointer focus-visible:ring-1 focus-visible:ring-zinc-400 focus-visible:outline-none rounded"
+              aria-label="Ver detalhes da Energia Sináptica"
+              className="flex items-center gap-2 group/title min-w-0 text-left cursor-pointer focus-visible:ring-1 focus-visible:ring-cyan-400 focus-visible:outline-none rounded"
             >
-              <Zap size={12} className="text-zinc-400 shrink-0" />
-              <span className="text-[11.5px] font-medium text-slate-700 dark:text-zinc-300 group-hover/title:text-slate-900 dark:group-hover/title:text-white transition-colors whitespace-nowrap">
-                Cota Diária
+              <div className="w-6 h-6 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+                <Zap size={12} className="text-cyan-600 dark:text-cyan-400 fill-cyan-400/20" />
+              </div>
+              <span className="text-[11.5px] font-bold text-slate-900 dark:text-slate-200 group-hover/title:text-cyan-600 dark:group-hover/title:text-cyan-300 transition-colors whitespace-nowrap tracking-tight">
+                Energia Sináptica
               </span>
             </button>
 
@@ -258,11 +260,12 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                 onClick={() => setIsOpen(!isOpen)}
                 aria-haspopup="dialog"
                 aria-expanded={isOpen}
-                aria-label={`Cota Diária: ${remainingEnergy} de 10 restantes. Clique para ver detalhes.`}
-                title="Ver detalhes da franquia diária"
-                className="px-1.5 py-0.5 rounded bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 hover:text-white transition-all text-[10px] font-mono font-semibold cursor-pointer shrink-0"
+                aria-label={`Energia Sináptica: ${remainingEnergy} de 10 restantes. Clique para ver detalhes.`}
+                title="Ver detalhes da Energia Sináptica"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-700 dark:text-cyan-300 hover:text-white transition-all text-[10px] font-mono font-bold cursor-pointer shrink-0"
               >
-                {remainingEnergy}/10
+                <Zap size={9} className="text-cyan-400 fill-cyan-400/30" />
+                <span>{remainingEnergy}/10</span>
               </button>
 
               {/* Indicador Flutuante Otimista (-1) */}
@@ -274,31 +277,32 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                     animate={{ opacity: 0, y: -18, scale: 1.05 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 1.1, ease: "easeOut" }}
-                    className="absolute -top-3 right-0 pointer-events-none z-30 font-mono font-bold text-[10px] text-zinc-200 bg-zinc-900 border border-zinc-700 px-1.5 py-0.2 rounded flex items-center gap-0.5 whitespace-nowrap"
+                    className="absolute -top-3 right-0 pointer-events-none z-30 font-mono font-bold text-[10px] text-cyan-300 bg-slate-900 border border-cyan-500/40 px-1.5 py-0.2 rounded-full flex items-center gap-0.5 whitespace-nowrap"
                   >
                     <span>-{item.cost}</span>
+                    <Zap size={9} className="fill-cyan-400 text-cyan-400" />
                   </motion.div>
                 ))}
               </AnimatePresence>
             </div>
           </div>
 
-          {/* Barra Fina de Franquia */}
+          {/* Barra Fina de Energia */}
           <div
             onClick={() => setIsOpen(true)}
-            className="mt-2 space-y-1.5 cursor-pointer group/bar"
-            title="Clique para ver o detalhamento da cota"
+            className="mt-2 space-y-1 cursor-pointer group/bar"
+            title="Clique para ver o detalhamento da energia"
           >
-            <div className="h-1 w-full bg-slate-200 dark:bg-zinc-950 rounded-full overflow-hidden">
+            <div className="h-1 w-full bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-500 bg-zinc-300"
+                className="h-full rounded-full transition-all duration-500 bg-linear-to-r from-cyan-500 to-indigo-500"
                 style={{ width: `${Math.max(percentEnergy, 4)}%` }}
               />
             </div>
 
-            <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-zinc-500 font-normal">
+            <div className="flex items-center justify-between text-[9.5px] text-slate-500 dark:text-slate-400 pt-0.5 font-medium">
               <span className="truncate">
-                {remainingEnergy} {remainingEnergy === 1 ? "uso disponível" : "usos disponíveis"}
+                {remainingEnergy} {remainingEnergy === 1 ? "ajuda restante hoje" : "ajudas restantes hoje"}
               </span>
               <Link
                 href="/pricing"
@@ -306,9 +310,10 @@ export function AiQuotaBadge({ onNavigate }: AiQuotaBadgeProps) {
                   e.stopPropagation();
                   onNavigate?.();
                 }}
-                className="text-zinc-400 hover:text-zinc-100 font-medium transition-colors flex items-center gap-0.5 shrink-0"
+                className="text-amber-600 dark:text-amber-400 hover:text-amber-300 font-bold transition-colors flex items-center gap-0.5 shrink-0"
               >
-                <span>Expandir</span>
+                <Crown size={10} />
+                <span>Acelerar</span>
                 <ChevronRight size={10} />
               </Link>
             </div>

@@ -326,7 +326,7 @@ function PlannerContent() {
     : allMappedTopics;
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-zinc-100 p-3.5 sm:p-6 font-sans antialiased relative">
+    <div className="min-h-screen bg-[#030712] text-slate-100 p-3.5 sm:p-6 font-sans antialiased relative">
       <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6 animate-in fade-in duration-500">
         {/* Header com Breadcrumb Executivo */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -722,25 +722,25 @@ function PlannerContent() {
           </div>
         )}
 
-        {/* DIRETÓRIO EXECUTIVO DE EDITAIS (SEM CAIXAS ANINHADAS, ESTÉTICA LINEAR/VERCEL) */}
+        {/* DIRETÓRIO EXECUTIVO DE EDITAIS (ESTRUTURA SPLIT-PANE + IDENTIDADE SYNAPSE AI) */}
         {!loading && subjects.length === 0 && (
           <div className="space-y-5 pt-2">
-            {/* Barra Editorial de Ação Primária */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-y border-zinc-800/80 py-4">
+            {/* Barra de Ação Primária com Identidade Synapse AI */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-y border-slate-800/80 py-4">
               <div className="space-y-0.5">
-                <h3 className="text-base sm:text-lg font-semibold text-zinc-100 tracking-tight">
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
                   Selecione uma Grade Oficial ou Importe seu Documento
                 </h3>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-slate-400">
                   Escolha a carreira ao lado para carregar as disciplinas com pesos calibrados ou envie o PDF do seu concurso.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsImportModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-zinc-100 hover:bg-white px-3.5 py-2 text-xs font-semibold text-zinc-950 transition-all active:scale-[0.98] cursor-pointer"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-950/50 transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <UploadCloud size={14} />
                   <span>Importar PDF / Diário Oficial</span>
@@ -749,7 +749,7 @@ function PlannerContent() {
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-3.5 py-2 text-xs font-semibold text-zinc-200 hover:text-white transition-all active:scale-[0.98] cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:text-white transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <Plus size={14} />
                   <span>Disciplina Manual</span>
