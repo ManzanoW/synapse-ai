@@ -213,17 +213,14 @@ export function MentorAudioWelcomeCard({
   if (isDismissed) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-violet-500/35 bg-gradient-to-r from-[#0d091e] via-[#120f29] to-[#0a0718] p-4 sm:p-5 shadow-2xl backdrop-blur-md animate-in fade-in duration-300">
-      {/* Background glow */}
-      <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-violet-600/15 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-20 -right-20 w-48 h-48 rounded-full bg-indigo-600/15 blur-3xl pointer-events-none" />
+    <div className="relative overflow-hidden rounded-2xl border border-indigo-500/35 bg-[#090d16] p-4 sm:p-5 shadow-xs animate-in fade-in duration-300">
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Lado Esquerdo: Avatar do Mentor + Título + Status */}
         <div className="flex items-start sm:items-center gap-3.5">
           {/* Avatar com Ondas Sonoras Animadas */}
           <div className="relative shrink-0">
-            <div className="flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-950/60 border border-violet-400/30">
+            <div className="flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-950/50 border border-indigo-400/30">
               <Headphones size={24} />
             </div>
 
@@ -236,7 +233,7 @@ export function MentorAudioWelcomeCard({
 
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 flex items-center gap-1">
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
                 <Sparkles size={11} className="text-amber-400" />
                 <span>BOAS-VINDAS DO MENTOR</span>
               </span>
@@ -253,12 +250,12 @@ export function MentorAudioWelcomeCard({
             <div className="flex items-center gap-1 mt-1 text-xs text-slate-400">
               {isPlaying ? (
                 <div className="flex items-center gap-0.5 h-3">
-                  <span className="w-0.5 h-3 bg-violet-400 animate-pulse" />
-                  <span className="w-0.5 h-2 bg-indigo-400 animate-pulse delay-75" />
-                  <span className="w-0.5 h-3.5 bg-violet-300 animate-pulse delay-150" />
-                  <span className="w-0.5 h-1.5 bg-indigo-400 animate-pulse delay-100" />
-                  <span className="w-0.5 h-3 bg-violet-400 animate-pulse" />
-                  <span className="text-[11px] text-violet-300 font-medium ml-1.5">
+                  <span className="w-0.5 h-3 bg-indigo-400 animate-pulse" />
+                  <span className="w-0.5 h-2 bg-cyan-400 animate-pulse delay-75" />
+                  <span className="w-0.5 h-3.5 bg-indigo-300 animate-pulse delay-150" />
+                  <span className="w-0.5 h-1.5 bg-cyan-400 animate-pulse delay-100" />
+                  <span className="w-0.5 h-3 bg-indigo-400 animate-pulse" />
+                  <span className="text-[11px] text-indigo-300 font-medium ml-1.5">
                     Reproduzindo áudio humanizado...
                   </span>
                 </div>
@@ -279,7 +276,7 @@ export function MentorAudioWelcomeCard({
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition-all cursor-pointer active:scale-95 ${
               isPlaying
                 ? "bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-950/40"
-                : "bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-violet-950/60"
+                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-950/50"
             }`}
           >
             {isLoadingAudio ? (
@@ -330,7 +327,7 @@ export function MentorAudioWelcomeCard({
         <div className="mt-3.5 pt-2 border-t border-white/10">
           <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
             <div
-              className="bg-gradient-to-r from-violet-500 to-indigo-400 h-full transition-all duration-150"
+              className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full transition-all duration-150"
               style={{ width: `${progress}%` }}
             />
           </div>

@@ -379,8 +379,8 @@ export default function JurisprudenciaClient({
   if (!hasLawAccess) {
     return (
       <div className="min-h-[85vh] flex items-center justify-center p-4 sm:p-6">
-        <div className="max-w-xl w-full rounded-3xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-950/80 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl text-center space-y-6">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-500 shadow-xl shadow-amber-500/10">
+        <div className="max-w-xl w-full rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 sm:p-8 shadow-xs text-center space-y-6">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-500 shadow-xs">
             <Scale className="h-10 w-10" />
           </div>
 
@@ -502,7 +502,7 @@ export default function JurisprudenciaClient({
         </div>
 
         {/* ================= BARRA DE PESQUISA & FILTROS ================= */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-slate-950/70 p-4 sm:p-5 shadow-xl backdrop-blur-xl space-y-4">
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-4 sm:p-5 shadow-xs space-y-4">
           <form onSubmit={handleSearch} className="flex items-center gap-2.5">
             <div className="relative flex-1">
               <Search
@@ -628,7 +628,7 @@ export default function JurisprudenciaClient({
                 </div>
 
                 {displayedItems.length === 0 && !isSearching && (
-                  <div className="p-8 rounded-3xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/40 text-center space-y-3">
+                  <div className="p-8 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] text-center space-y-3">
                     <Scale size={32} className="mx-auto text-slate-400" />
                     <h3 className="text-sm font-bold text-slate-700 dark:text-zinc-300">
                       {activeTab === "SAVED"
@@ -657,10 +657,10 @@ export default function JurisprudenciaClient({
             return (
               <div
                 key={item.id}
-                className={`rounded-3xl border transition-all duration-200 overflow-hidden ${
+                className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
                   isExpanded
-                    ? "border-indigo-500/50 bg-white dark:bg-slate-950/90 shadow-2xl backdrop-blur-2xl ring-1 ring-indigo-500/20"
-                    : "border-slate-200/80 dark:border-white/[0.08] bg-white/70 dark:bg-slate-950/50 hover:border-slate-300 dark:hover:border-white/20"
+                    ? "border-indigo-500/50 bg-white dark:bg-[#090d16] shadow-lg ring-1 ring-indigo-500/20"
+                    : "border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#090d16]/80 hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
               >
                 {/* CABEÇALHO DO CARD */}
@@ -872,7 +872,7 @@ export default function JurisprudenciaClient({
                             <span>Simular Questão de Banca ({item.drillQuestion.banca}) ➔</span>
                           </button>
                         ) : (
-                          <div className="rounded-3xl border border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/[0.03] p-5 space-y-4">
+                          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/[0.03] p-5 space-y-4">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                                 <Gavel className="h-3.5 w-3.5" />
