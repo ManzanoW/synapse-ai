@@ -537,44 +537,38 @@ export default function Sidebar({ user }: SidebarProps) {
 
       <aside
         className={`
-          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#080B11] border-r border-slate-200 dark:border-slate-800/80 
-          text-slate-800 dark:text-slate-200 flex flex-col p-3.5 font-sans antialiased shrink-0 select-none
+          w-72 sm:w-64 max-w-[85vw] h-screen h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#09090B] border-r border-slate-200 dark:border-zinc-800/80 
+          text-slate-800 dark:text-zinc-200 flex flex-col p-3.5 font-sans antialiased shrink-0 select-none
           fixed md:sticky top-0 left-0 z-50 transition-transform duration-300 ease-in-out 
           ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
         {/* Cabeçalho Fixo & Busca */}
-        <div className="shrink-0 space-y-3 pb-1.5">
-          {/* Logo */}
-          <div className="relative flex flex-col items-center pt-0.5 px-2 text-center select-none">
+        <div className="shrink-0 space-y-2.5 pb-1.5">
+          {/* Brand Header Editorial Alinhado à Esquerda (Estilo Linear / Raycast) */}
+          <div className="relative flex items-center justify-between pt-0.5 px-1.5 select-none">
+            <div className="inline-flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-mono text-xs font-black tracking-tighter">
+                S
+              </div>
+              <h1 className="font-bold text-slate-900 dark:text-zinc-100 text-base tracking-tight">
+                Synapse
+              </h1>
+              <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-slate-100 dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800">
+                Concursos
+              </span>
+            </div>
+
             {/* Botão de Fechar no Mobile */}
             <button
               type="button"
               onClick={closeSidebar}
-              className="md:hidden absolute right-0 top-0 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              className="md:hidden p-1.5 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
               title="Fechar menu"
               aria-label="Fechar menu"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
-
-            <div className="inline-flex items-center justify-center gap-1.5">
-              <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-[1.65rem] tracking-tight">
-                Synapse
-              </h1>
-
-              <div className="inline-flex items-center gap-1">
-                <span className="font-bold text-[1.65rem] tracking-tight text-indigo-400">
-                  AI
-                </span>
-
-                <div className="relative flex items-center justify-center w-1.5 h-1.5 mt-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full h-px bg-slate-200 dark:bg-slate-800/80 mt-2.5" />
           </div>
 
           {/* Barra de Busca Rápida (Full Width - Ampla, Acessível e Confortável) */}
@@ -770,20 +764,20 @@ export default function Sidebar({ user }: SidebarProps) {
                             }
                             closeSidebar();
                           }}
-                          className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
+                          className={`relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium transition-all duration-150 ${
                             isActive
                               ? isSpecial
-                                ? "text-amber-800 bg-amber-500/15 font-semibold border border-amber-500/30 dark:text-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
-                                : "text-indigo-700 bg-indigo-50 font-semibold dark:text-indigo-200 dark:bg-indigo-500/10"
-                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/4"
+                                ? "text-amber-800 bg-amber-500/15 font-semibold border border-amber-500/30 dark:text-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20"
+                                : "text-slate-900 bg-slate-100 font-semibold dark:text-white dark:bg-zinc-800/90"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-900/60"
                           }`}
                         >
                           {isActive && (
                             <div
-                              className={`absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full ${
+                              className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r ${
                                 isSpecial
-                                  ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.9)]"
-                                  : "bg-indigo-500 shadow-[0_0_8px_rgba(129,140,248,0.8)]"
+                                  ? "bg-amber-500"
+                                  : "bg-slate-900 dark:bg-zinc-100"
                               }`}
                             />
                           )}
@@ -794,9 +788,9 @@ export default function Sidebar({ user }: SidebarProps) {
                             className={`transition-all duration-200 shrink-0 ${
                               isActive
                                 ? isSpecial
-                                  ? "text-amber-600 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]"
-                                  : "text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]"
-                                : "text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300"
+                                  ? "text-amber-600 dark:text-amber-400"
+                                  : "text-slate-900 dark:text-zinc-100"
+                                : "text-slate-400 group-hover:text-slate-700 dark:text-zinc-500 dark:group-hover:text-zinc-300"
                             }`}
                           />
 
@@ -804,7 +798,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
                           {item.badge && (
                             <span
-                              className={`ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded-full border tracking-tight shrink-0 transition-colors ${getBadgeStyles(
+                              className={`ml-auto text-[8.5px] font-bold px-1.5 py-0.2 rounded border tracking-tight shrink-0 transition-colors ${getBadgeStyles(
                                 item.badge
                               )}`}
                             >
@@ -844,63 +838,35 @@ export default function Sidebar({ user }: SidebarProps) {
           </nav>
         </div>
 
-        {/* 3. Rodapé Fixo: Card de Gamificação & Usuário (Sempre ancorado na base, sem corte) */}
-        <div className="shrink-0 pt-2 pb-[max(env(safe-area-inset-bottom),4px)] mt-auto border-t border-slate-100 dark:border-white/5">
-            <div className={`group relative overflow-hidden rounded-2xl ${
+        {/* 3. Rodapé Fixo: Usuário & Telemetria Compacta (Estilo Linear / Raycast) */}
+        <div className="shrink-0 pt-2 pb-[max(env(safe-area-inset-bottom),4px)] mt-auto border-t border-slate-100 dark:border-zinc-800/80">
+            <div className={`group relative overflow-hidden rounded-lg ${
               isLight
                 ? "bg-white border border-slate-200/90 shadow-xs"
-                : "bg-slate-950/70 border border-slate-800/80 backdrop-blur-2xl shadow-2xl"
-            } transition-all duration-300 hover:border-indigo-400/40 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-8px_rgba(99,102,241,0.18)]`}>
-              <div className="absolute -top-12 -left-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-500" />
-              <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-indigo-400/60 to-transparent shadow-[0_0_8px_#818cf8]" />
-
-              <div className="p-3 space-y-2.5 relative z-10">
+                : "bg-zinc-900/50 border border-zinc-800/80"
+            } transition-all duration-200`}>
+              <div className="p-2.5 space-y-2 relative z-10">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 size={16} className="animate-spin text-indigo-400" />
+                  <div className="flex items-center justify-center py-3">
+                    <Loader2 size={15} className="animate-spin text-zinc-400" />
                   </div>
                 ) : (
                   <>
-                    {/* Linha Superior: Ícone da Patente + Nível + Ofensiva */}
-                    <div className="flex items-center justify-between gap-1.5">
+                    {/* Linha Superior Compacta: Nível + XP + Ofensiva */}
+                    <div className="flex items-center justify-between gap-1.5 text-[11px]">
                       <Link
                         href={getHref("/achievements")}
                         onClick={closeSidebar}
-                        title="Ver minhas conquistas e medalhas"
-                        className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group/ach"
+                        title="Ver minhas conquistas"
+                        className="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer group/ach"
                       >
-                        <div
-                          className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/ach:scale-105 ${
-                            gamification?.prestigeTier?.badgeColor ||
-                            (isLight
-                              ? "bg-indigo-50 border-indigo-200 text-indigo-600"
-                              : "bg-indigo-500/15 border-indigo-500/30 text-indigo-400")
-                          }`}
-                        >
-                          <Award
-                            size={17}
-                            strokeWidth={2.2}
-                            className={
-                              gamification?.prestigeTier?.iconColor ||
-                              (isLight ? "text-indigo-600" : "text-indigo-400")
-                            }
-                          />
-                        </div>
-                        <div className="flex flex-col justify-center min-w-0 pr-1 flex-1">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"} leading-none truncate block`}>
-                              {(gamification?.title || "Iniciante Focado").replace(/NEÓFITO DOS ESTUDOS/i, "Iniciante Focado")}
-                            </span>
-                            {currentPrestige > 0 && (
-                              <span className="text-[7.5px] font-mono font-black px-1 py-0.2 rounded bg-cyan-100 text-cyan-800 border border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30 shrink-0">
-                                P{currentPrestige}
-                              </span>
-                            )}
-                          </div>
-                          <span className={`text-sm font-black ${isLight ? "text-slate-900" : "text-white"} group-hover/ach:text-indigo-500 dark:group-hover/ach:text-indigo-300 transition-colors tracking-tight leading-none mt-1`}>
-                            Nível {currentLevel}
-                          </span>
-                        </div>
+                        <Award size={13} className="text-zinc-400 shrink-0" />
+                        <span className={`font-semibold ${isLight ? "text-slate-800" : "text-zinc-200"} group-hover/ach:text-white transition-colors truncate`}>
+                          Nível {currentLevel}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500">
+                          • {gamification?.totalXp || 0} XP
+                        </span>
                       </Link>
 
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -909,105 +875,65 @@ export default function Sidebar({ user }: SidebarProps) {
                             type="button"
                             onClick={() => setIsPrestigeModalOpen(true)}
                             title="Subir de Categoria de Estudos!"
-                            className="cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-100 border border-cyan-300 text-cyan-800 dark:bg-cyan-500/20 dark:border-cyan-500/40 dark:text-cyan-300 text-[10px] font-black font-mono animate-bounce"
+                            className="cursor-pointer flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-200 text-[9px] font-bold font-mono"
                           >
-                            <Crown size={11} />
-                            <span>EVOLUIR ⭐</span>
+                            <Crown size={10} />
+                            <span>EVOLUIR</span>
                           </button>
                         )}
 
-                        {Boolean(streak?.streakFreezes && streak.streakFreezes > 0) && (
-                          <div
-                            className="flex items-center gap-1 px-2 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-700 dark:bg-cyan-500/10 dark:border-cyan-500/30 dark:text-cyan-300 text-[11px] font-bold font-mono shadow-2xs"
-                            title={`${streak?.streakFreezes} Congelamento(s) de Ofensiva ativo(s) — seu streak está protegido contra faltas acidentais!`}
-                          >
-                            <Shield size={11} className="fill-cyan-500/20 text-cyan-600 dark:fill-cyan-400/30 dark:text-cyan-400" />
-                            <span>{streak?.streakFreezes}</span>
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/25 dark:text-rose-400 text-xs font-bold font-mono shadow-2xs">
-                          <Flame
-                            size={13}
-                            className="fill-rose-500 text-rose-500 animate-pulse"
-                          />
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[10px] font-mono font-semibold">
+                          <Flame size={11} className="text-amber-400" />
                           <span>{streak?.currentDays || 0}d</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Linha Central: Barra de XP */}
-                    <div className="space-y-1.5 pt-0.5">
-                      <div className="flex items-center justify-between text-[11px] font-mono">
-                        <span className="flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
-                          <Zap
-                            size={12}
-                            className="fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400"
-                          />
-                          {gamification?.totalXp || 0}{" "}
-                          <span className="text-slate-500 dark:text-slate-400 font-normal">XP</span>
-                        </span>
-                        <span className="text-slate-500 dark:text-slate-400 font-bold text-[10px]">
-                          {gamification?.progressPercentage ?? 0}%
-                        </span>
-                      </div>
-
-                      <div className={`h-1.5 w-full ${isLight ? "bg-slate-100 border border-slate-200" : "bg-slate-950/90 border border-white/10"} rounded-full p-px shadow-inner overflow-hidden`}>
-                        <div
-                          className="h-full bg-linear-to-r from-amber-400 via-indigo-500 to-indigo-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(129,140,248,0.8)] relative"
-                          style={{
-                            width: `${Math.max(
-                              gamification?.progressPercentage ?? 0,
-                              4,
-                            )}%`,
-                          }}
-                        >
-                          <div className="absolute inset-0 bg-white/25 animate-pulse rounded-full" />
-                        </div>
-                      </div>
+                    {/* Barra Fina de Progresso */}
+                    <div className={`h-1 w-full ${isLight ? "bg-slate-100" : "bg-zinc-950"} rounded-full overflow-hidden`}>
+                      <div
+                        className="h-full bg-zinc-300 rounded-full transition-all duration-500 ease-out"
+                        style={{
+                          width: `${Math.max(
+                            gamification?.progressPercentage ?? 0,
+                            4,
+                          )}%`,
+                        }}
+                      />
                     </div>
 
                     {/* Linha Divisória */}
-                    <div className={`h-px w-full ${isLight ? "bg-slate-200/80" : "bg-linear-to-r from-transparent via-slate-800 to-transparent"} my-1`} />
+                    <div className={`h-px w-full ${isLight ? "bg-slate-200/80" : "bg-zinc-800/80"}`} />
 
-                    {/* Linha Inferior: Usuário, Avatar Teal, Plano & Sair */}
+                    {/* Linha Inferior: Usuário, Avatar & Sair */}
                     <div className="flex items-center justify-between gap-2 pt-0.5">
                       <Link
                         href={getHref("/profile")}
                         onClick={closeSidebar}
-                        className="flex items-center gap-2.5 min-w-0 flex-1 group/user cursor-pointer"
+                        className="flex items-center gap-2 min-w-0 flex-1 group/user cursor-pointer"
                         title="Ver seu perfil"
                       >
                         {user?.image ? (
                           <Image
                             src={user.image}
                             alt={user.name || "Avatar"}
-                            width={36}
-                            height={36}
-                            className="w-9 h-9 rounded-xl object-cover border border-teal-500/30 dark:border-teal-400/40 shrink-0 shadow-2xs"
+                            width={30}
+                            height={30}
+                            className="w-7 h-7 rounded-md object-cover border border-zinc-700 shrink-0"
                           />
                         ) : (
-                          <div className="w-9 h-9 rounded-xl bg-teal-500 hover:bg-teal-400 transition-colors flex items-center justify-center text-white text-sm font-black shrink-0 shadow-2xs">
+                          <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-200 text-xs font-bold shrink-0">
                             {getInitials(user?.name)}
                           </div>
                         )}
 
                         <div className="truncate min-w-0 flex-1">
-                          <p className={`text-[12px] font-bold ${isLight ? "text-slate-900" : "text-slate-100"} group-hover/user:text-teal-600 dark:group-hover/user:text-teal-300 transition-colors truncate leading-tight`}>
-                            {user?.name || "Johnny Plays"}
+                          <p className={`text-[11.5px] font-semibold ${isLight ? "text-slate-900" : "text-zinc-200"} group-hover/user:text-white transition-colors truncate leading-tight`}>
+                            {user?.name || "Estudante"}
                           </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md font-mono text-[8.5px] font-extrabold uppercase tracking-wider leading-none ${
-                              userPlan === "PRO MEMBER"
-                                ? "bg-amber-100 border border-amber-300/80 text-amber-800 dark:bg-amber-500/20 dark:border-amber-500/30 dark:text-amber-300"
-                                : "bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/15 dark:border-indigo-500/30 dark:text-indigo-300"
-                            }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${
-                                userPlan === "PRO MEMBER" ? "bg-amber-500 animate-pulse" : "bg-indigo-500"
-                              }`} />
-                              {userPlan}
-                            </span>
-                          </div>
+                          <span className="text-[9.5px] font-mono text-zinc-500 block leading-tight truncate">
+                            {userPlan.replace(" 👑", "")}
+                          </span>
                         </div>
                       </Link>
 
@@ -1019,9 +945,9 @@ export default function Sidebar({ user }: SidebarProps) {
                         }}
                         aria-label="Sair da conta"
                         title="Sair da conta"
-                        className={`w-8 h-8 rounded-xl ${isLight ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200" : "text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 border border-transparent hover:border-rose-500/20"} transition-all shrink-0 cursor-pointer flex items-center justify-center active:scale-95`}
+                        className={`w-7 h-7 rounded-md ${isLight ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50" : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800"} transition-all shrink-0 cursor-pointer flex items-center justify-center`}
                       >
-                        <LogOut size={16} />
+                        <LogOut size={14} />
                       </button>
                     </div>
                   </>

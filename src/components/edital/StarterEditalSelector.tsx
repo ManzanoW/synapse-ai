@@ -115,24 +115,21 @@ export function StarterEditalSelector({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Seleção Guiada em 2 Etapas: Nenhuma área selecionada no início (ou seleciona a primeira)
-  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
+  // Diretório em 1 Etapa: Primeira área selecionada por padrão para exibir os editais reais de imediato
+  const [selectedAreaId, setSelectedAreaId] = useState<string>("policial");
 
   // Modo de importação: mesclar ou substituir grade existente
   const [replaceExisting, setReplaceExisting] = useState<boolean>(false);
 
-  // Personalização com IA
+  // Personalização por cargo específico
   const [customRoleInput, setCustomRoleInput] = useState<string>("");
   const [customDifficulty, setCustomDifficulty] = useState<"EASY" | "MEDIUM" | "HARD">("MEDIUM");
   const [isGeneratingCustom, setIsGeneratingCustom] = useState<boolean>(false);
-  const [showAiCustomBox, setShowAiCustomBox] = useState<boolean>(false);
 
   const allTemplates = Object.values(STARTER_EDITAL_TEMPLATES);
 
-  const activeArea = MACRO_AREAS.find((a) => a.id === selectedAreaId) || null;
-  const filteredTemplates = activeArea
-    ? allTemplates.filter(activeArea.categoryFilter)
-    : [];
+  const activeArea = MACRO_AREAS.find((a) => a.id === selectedAreaId) || MACRO_AREAS[0];
+  const filteredTemplates = allTemplates.filter(activeArea.categoryFilter);
 
   const handleSelectTemplate = async (templateId: string) => {
     triggerHaptic("medium");
@@ -259,41 +256,43 @@ export function StarterEditalSelector({
   return (
     <div className="space-y-4 w-full">
       {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
-          <ShieldAlert size={16} className="shrink-0" />
+        <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
+          <ShieldAlert size={15} className="shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {successMessage && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs flex items-center gap-2 font-bold animate-fade-in">
-          <Check size={16} className="shrink-0" />
+        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs flex items-center gap-2 font-semibold animate-fade-in">
+          <Check size={15} className="shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
 
-      {/* =========================================================================
-          ETAPA 1: ESCOLHA DA CARREIRA (6 CARDS VISUAIS - SEM CONGELAMENTO DE DECISÃO)
-         ========================================================================= */}
-      {!selectedAreaId ? (
-        <div className="space-y-3.5">
-          {!hideHeader && (
-            <div className="text-center sm:text-left">
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-300 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/80">
-                Catálogo de Carreiras Oficiais
-              </span>
-              <h3 className="text-base sm:text-lg font-bold text-white mt-1.5 tracking-tight">
-                Selecione sua área de concurso
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Grades curriculares padronizadas com pesos calibrados conforme os últimos editais:
-              </p>
-            </div>
-          )}
+      {!hideHeader && (
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-1">
+          <div>
+            <h3 className="text-base font-semibold text-zinc-100 tracking-tight">
+              Diretório de Grades Oficiais
+            </h3>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Selecione a carreira à esquerda para visualizar e carregar o conteúdo programático calibrado:
+            </p>
+          </div>
+        </div>
+      )}
 
-          {/* Grid de 6 Áreas Claras */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {MACRO_AREAS.map((area) => (
+      {/* DIRETÓRIO SPLIT-PANE AUTORAL (PADRÃO LINEAR / VERCEL) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Coluna Esquerda: Navegação Vertical de Carreiras */}
+        <div className="lg:col-span-4 flex flex-col gap-1 p-1.5 rounded-lg bg-[#0E0E11] border border-zinc-800/80">
+          <div className="px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
+            Áreas de Concurso
+          </div>
+          {MACRO_AREAS.map((area) => {
+            const isSelected = area.id === activeArea.id;
+            const count = allTemplates.filter(area.categoryFilter).length;
+            return (
               <button
                 key={area.id}
                 type="button"
@@ -301,254 +300,171 @@ export function StarterEditalSelector({
                   triggerHaptic("light");
                   setSelectedAreaId(area.id);
                 }}
-                className="group relative p-4 rounded-lg border border-slate-800 bg-slate-950/60 hover:bg-slate-900/90 hover:border-slate-700 text-left transition-all cursor-pointer flex flex-col justify-between space-y-2.5 active:scale-98"
+                className={`w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-md text-left transition-all cursor-pointer ${
+                  isSelected
+                    ? "bg-zinc-800/90 text-white font-semibold shadow-2xs"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 font-medium"
+                }`}
               >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
-                      {area.icon}
-                    </div>
-                    <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 group-hover:text-slate-300">
-                      {area.badge}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="shrink-0 opacity-85">{area.icon}</span>
+                  <div className="min-w-0">
+                    <span className="text-xs block truncate">{area.name}</span>
+                    <span className="text-[10px] text-zinc-500 block truncate font-normal">
+                      {area.tag}
                     </span>
                   </div>
-                  <h4 className="text-sm font-bold text-slate-100 group-hover:text-white transition-colors">
-                    {area.name}
-                  </h4>
-                  <p className="text-[11px] text-indigo-400 font-medium mt-0.5">
-                    {area.tag}
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                    {area.description}
-                  </p>
                 </div>
-
-                <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 group-hover:text-white font-medium">
-                  <span>Ver editais da área</span>
-                  <ArrowRight size={13} className="transition-transform group-hover:translate-x-1 text-indigo-400" />
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Botão de Escape para Concurso Específico */}
-          <div className="pt-1">
-            {!showAiCustomBox ? (
-              <button
-                type="button"
-                onClick={() => setShowAiCustomBox(true)}
-                className="w-full py-2.5 px-4 rounded-lg border border-dashed border-slate-700 bg-slate-900/40 hover:bg-slate-900/80 hover:border-slate-600 text-xs font-medium text-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Search size={14} className="text-indigo-400" />
-                <span>Não encontrou seu concurso específico? Pesquise o cargo ou órgão para mapeamento automático</span>
-              </button>
-            ) : (
-              <div className="p-4 rounded-lg border border-slate-700 bg-slate-900/80 space-y-3 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white flex items-center gap-2">
-                    <BookOpen size={14} className="text-indigo-400" />
-                    Mapeamento Automático por Cargo ou Órgão
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowAiCustomBox(false)}
-                    className="text-xs text-slate-500 hover:text-slate-300"
-                  >
-                    Fechar
-                  </button>
-                </div>
-
-                <form onSubmit={handleGenerateCustom} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={customRoleInput}
-                    onChange={(e) => setCustomRoleInput(e.target.value)}
-                    placeholder="Ex: Auditor SEFAZ-SP, Analista IBAMA, Oficial PM..."
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isGeneratingCustom || !customRoleInput.trim()}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shrink-0"
-                  >
-                    {isGeneratingCustom ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Check size={14} />
-                    )}
-                    <span>Mapear Edital</span>
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* =========================================================================
-            ETAPA 2: EDITAIS PRONTOS DA ÁREA ESCOLHIDA (POUCAS OPÇÕES, DECISÃO RÁPIDA)
-           ========================================================================= */
-        <div className="space-y-4 animate-in fade-in duration-200">
-          {/* Barra Superior de Retorno */}
-          <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("light");
-                setSelectedAreaId(null);
-              }}
-              className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer group"
-            >
-              <ChevronLeft size={16} className="transition-transform group-hover:-translate-x-0.5" />
-              <span>Voltar para todas as áreas</span>
-            </button>
-
-            <span className="text-xs font-bold text-white flex items-center gap-2">
-              {activeArea?.icon}
-              <span>{activeArea?.name}</span>
-            </span>
-          </div>
-
-          {/* Opção de Substituição Limpa */}
-          <div className="flex items-center justify-between gap-2 px-1 text-xs">
-            <label className="flex items-center gap-2 text-slate-300 hover:text-white cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={replaceExisting}
-                onChange={(e) => setReplaceExisting(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-              />
-              <span className="font-medium text-[11px] sm:text-xs">
-                Substituir matérias anteriores (limpar grade antes de carregar nova carreira)
-              </span>
-            </label>
-            {replaceExisting && (
-              <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-semibold">
-                Modo Limpeza Ativo
-              </span>
-            )}
-          </div>
-
-          {/* Cards dos Editais Prontos */}
-          <div
-            className={`grid gap-3 ${
-              compact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-            }`}
-          >
-            {filteredTemplates.map((tpl) => {
-              const isLoading = loadingTemplateId === tpl.id;
-              const visibleMaterias = tpl.materias.slice(0, 4);
-              const remainingCount = tpl.materias.length - visibleMaterias.length;
-
-              return (
-                <div
-                  key={tpl.id}
-                  className="relative p-4 rounded-lg border border-slate-800 bg-slate-950/60 hover:bg-slate-900/90 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3"
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
+                    isSelected
+                      ? "bg-zinc-700 text-zinc-100 font-semibold"
+                      : "bg-zinc-900 text-zinc-500"
+                  }`}
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-bold text-white leading-tight truncate">
-                          {tpl.title}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800 shrink-0">
-                        {tpl.badge}
-                      </span>
-                    </div>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-                    <p className="text-xs text-slate-400 leading-snug">
-                      {tpl.shortDescription}
-                    </p>
+        {/* Coluna Direita: Tabela Executiva de Editais da Área Selecionada */}
+        <div className="lg:col-span-8 space-y-3">
+          <div className="rounded-lg border border-zinc-800/80 bg-[#0E0E11] overflow-hidden">
+            {/* Cabeçalho da Tabela */}
+            <div className="px-4 py-3 bg-zinc-900/50 border-b border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {activeArea.icon}
+                <span className="text-xs font-semibold text-zinc-100">
+                  {activeArea.name}
+                </span>
+                <span className="text-[11px] text-zinc-500 hidden sm:inline">
+                  — {activeArea.description}
+                </span>
+              </div>
 
-                    {/* Matérias Principais */}
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {visibleMaterias.map((m, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 truncate max-w-[150px]"
-                        >
-                          {m.name}
-                        </span>
-                      ))}
-                      {remainingCount > 0 && (
-                        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-                          +{remainingCount} matérias
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      {tpl.materias.length} disciplinas mapeadas
-                    </span>
-
-                    <button
-                      type="button"
-                      disabled={loadingTemplateId !== null || isGeneratingCustom}
-                      onClick={() => handleSelectTemplate(tpl.id)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 size={13} className="animate-spin" />
-                          <span>Carregando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check size={13} />
-                          <span>Carregar Grade Oficial</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Caixa Específica para a Área */}
-          <div className="p-3.5 rounded-lg bg-slate-900/40 border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
-            <div className="text-slate-300">
-              <span className="font-semibold text-white">Não é o edital que você procura?</span>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Informe o cargo ou órgão de {activeArea?.name} para estruturar o conteúdo programático:
-              </p>
+              <label className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-200 cursor-pointer select-none shrink-0">
+                <input
+                  type="checkbox"
+                  checked={replaceExisting}
+                  onChange={(e) => setReplaceExisting(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-zinc-700 bg-zinc-900 text-zinc-100 focus:ring-0 cursor-pointer"
+                />
+                <span>Substituir grade atual</span>
+              </label>
             </div>
 
-            <form
-              onSubmit={handleGenerateCustom}
-              className="flex items-center gap-2 sm:w-auto w-full"
-            >
+            {/* Linhas de Editais */}
+            <div className="divide-y divide-zinc-800/70">
+              {filteredTemplates.map((tpl) => {
+                const isLoading = loadingTemplateId === tpl.id;
+                const visibleMaterias = tpl.materias.slice(0, 5);
+                const remainingCount = tpl.materias.length - visibleMaterias.length;
+
+                return (
+                  <div
+                    key={tpl.id}
+                    className="p-4 hover:bg-zinc-900/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1.5 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm font-semibold text-zinc-100 tracking-tight">
+                          {tpl.title}
+                        </h4>
+                        <span className="text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded">
+                          {tpl.materias.length} disciplinas
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        {tpl.shortDescription}
+                      </p>
+
+                      {/* Lista Horizontal Limpa de Disciplinas */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        {visibleMaterias.map((m, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] text-zinc-300 bg-zinc-900/90 border border-zinc-800/90 px-2 py-0.5 rounded"
+                          >
+                            {m.name}
+                          </span>
+                        ))}
+                        {remainingCount > 0 && (
+                          <span className="text-[10px] font-mono text-zinc-400 px-1.5 py-0.5">
+                            +{remainingCount}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex items-center">
+                      <button
+                        type="button"
+                        disabled={loadingTemplateId !== null || isGeneratingCustom}
+                        onClick={() => handleSelectTemplate(tpl.id)}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 size={13} className="animate-spin text-zinc-900" />
+                            <span>Carregando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Carregar Grade</span>
+                            <ArrowRight size={13} />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Barra Inline de Mapeamento Sob Demanda por Cargo */}
+          <form
+            onSubmit={handleGenerateCustom}
+            className="p-3 rounded-lg bg-[#0E0E11] border border-zinc-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5"
+          >
+            <div className="flex items-center gap-2 text-xs text-zinc-400 min-w-0">
+              <Search size={14} className="text-zinc-500 shrink-0" />
+              <span className="truncate">Outro cargo específico?</span>
+            </div>
+
+            <div className="flex items-center gap-2 flex-1 sm:max-w-md">
               <input
                 type="text"
                 value={customRoleInput}
                 onChange={(e) => setCustomRoleInput(e.target.value)}
-                placeholder={`Ex: Cargo em ${activeArea?.name}...`}
-                className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 w-full sm:w-60"
+                placeholder={`Ex: Auditor SEFAZ-SP, Analista BACEN, Oficial...`}
+                className="flex-1 bg-zinc-950 border border-zinc-800 rounded-md px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
               />
               <button
                 type="submit"
                 disabled={isGeneratingCustom || !customRoleInput.trim()}
-                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
+                className="px-3 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-semibold transition-all disabled:opacity-40 cursor-pointer flex items-center gap-1.5 shrink-0"
               >
                 {isGeneratingCustom ? (
                   <Loader2 size={13} className="animate-spin" />
                 ) : (
                   <Check size={13} />
                 )}
-                <span>Mapear</span>
+                <span>Mapear Cargo</span>
               </button>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
-      )}
+      </div>
 
       {showCustomLink && (
-        <div className="pt-2 text-center">
+        <div className="pt-1 text-right">
           <a
             href="/edital"
-            className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition-colors font-medium"
+            className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 underline underline-offset-4 transition-colors font-medium"
           >
             <FileText size={13} />
             <span>Já possui o PDF do edital oficial? Importar documento</span>

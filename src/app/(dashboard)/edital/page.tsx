@@ -326,7 +326,7 @@ function PlannerContent() {
     : allMappedTopics;
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 p-3.5 sm:p-6 font-sans antialiased relative">
+    <div className="min-h-screen bg-[#09090B] text-zinc-100 p-3.5 sm:p-6 font-sans antialiased relative">
       <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6 animate-in fade-in duration-500">
         {/* Header com Breadcrumb Executivo */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -722,49 +722,47 @@ function PlannerContent() {
           </div>
         )}
 
-        {/* EMPTY STATE EXECUTIVO: FOCO EM 1 ÚNICA DECISÃO ACIMA DA DOBRA */}
+        {/* DIRETÓRIO EXECUTIVO DE EDITAIS (SEM CAIXAS ANINHADAS, ESTÉTICA LINEAR/VERCEL) */}
         {!loading && subjects.length === 0 && (
-          <div className="relative rounded-lg border border-slate-800 bg-[#0B0F17] p-5 sm:p-6 shadow-lg">
-            <div className="space-y-5">
-              {/* Header Único com Ações Diretas de Importação/Manual */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
-                <div className="space-y-1">
-                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                    Estruture seu Edital Verticalizado
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-2xl">
-                    Selecione sua carreira abaixo para carregar a grade oficial calibrada ou importe o documento específico da sua banca.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsImportModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all active:scale-[0.98] cursor-pointer"
-                  >
-                    <UploadCloud size={14} />
-                    <span>Importar Edital Oficial (PDF / Texto)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:text-white transition-all active:scale-[0.98] cursor-pointer"
-                  >
-                    <Plus size={14} />
-                    <span>Matéria Manual</span>
-                  </button>
-                </div>
+          <div className="space-y-5 pt-2">
+            {/* Barra Editorial de Ação Primária */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-y border-zinc-800/80 py-4">
+              <div className="space-y-0.5">
+                <h3 className="text-base sm:text-lg font-semibold text-zinc-100 tracking-tight">
+                  Selecione uma Grade Oficial ou Importe seu Documento
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  Escolha a carreira ao lado para carregar as disciplinas com pesos calibrados ou envie o PDF do seu concurso.
+                </p>
               </div>
 
-              {/* Catálogo Direto de Carreiras (Sem Cabeçalho Duplicado) */}
-              <StarterEditalSelector
-                onSuccess={() => refreshData()}
-                showCustomLink={false}
-                hideHeader={true}
-              />
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-zinc-100 hover:bg-white px-3.5 py-2 text-xs font-semibold text-zinc-950 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <UploadCloud size={14} />
+                  <span>Importar PDF / Diário Oficial</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-3.5 py-2 text-xs font-semibold text-zinc-200 hover:text-white transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Disciplina Manual</span>
+                </button>
+              </div>
             </div>
+
+            {/* Diretório Split-Pane de Carreiras e Editais */}
+            <StarterEditalSelector
+              onSuccess={() => refreshData()}
+              showCustomLink={false}
+              hideHeader={true}
+            />
           </div>
         )}
 
