@@ -32,7 +32,7 @@ export function FsrsReviewWidget({
   if (isLoading) {
     return (
       <div
-        className={`relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-50 dark:bg-slate-950/70 p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl animate-pulse ${className}`}
+        className={`relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50 dark:bg-[#090d16] p-5 shadow-xs animate-pulse ${className}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -52,11 +52,8 @@ export function FsrsReviewWidget({
   if (dueCount > 0) {
     return (
       <div
-        className={`group relative overflow-hidden rounded-3xl border border-amber-300/80 dark:border-amber-500/30 bg-amber-50/75 dark:bg-gradient-to-r dark:from-[#171205]/95 dark:via-[#0d0b1a]/95 dark:to-[#060814]/95 p-5 sm:p-6 shadow-md shadow-amber-100/40 dark:shadow-2xl dark:shadow-amber-950/20 backdrop-blur-2xl transition-all duration-300 hover:border-amber-400 dark:hover:border-amber-500/50 ${className}`}
+        className={`group relative overflow-hidden rounded-2xl border border-amber-300/80 dark:border-amber-500/30 bg-amber-50/75 dark:bg-[#090d16] p-5 sm:p-6 shadow-xs transition-all duration-300 hover:border-amber-400 dark:hover:border-amber-500/50 ${className}`}
       >
-        {/* Glow de fundo */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-amber-500/15 blur-3xl" />
-        <div className="pointer-events-none absolute -left-20 -bottom-20 h-48 w-48 rounded-full bg-indigo-500/10 blur-3xl" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -123,7 +120,7 @@ export function FsrsReviewWidget({
   if (totalCount > 0) {
     return (
       <div
-        className={`group relative overflow-hidden rounded-3xl border border-emerald-200/90 dark:border-emerald-500/20 bg-white dark:bg-slate-950/60 p-4 sm:p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-emerald-300 dark:hover:border-emerald-500/30 ${className}`}
+        className={`group relative overflow-hidden rounded-2xl border border-emerald-200/90 dark:border-emerald-500/20 bg-white dark:bg-[#090d16] p-4 sm:p-5 shadow-xs transition-all duration-300 hover:border-emerald-300 dark:hover:border-emerald-500/30 ${className}`}
       >
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
 
@@ -160,7 +157,7 @@ export function FsrsReviewWidget({
   // Caso o usuário ainda não possua nenhum flashcard criado
   return (
     <div
-      className={`group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-4 sm:p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-500/30 ${className}`}
+      className={`group relative overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-4 sm:p-5 shadow-xs transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-500/30 ${className}`}
     >
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">

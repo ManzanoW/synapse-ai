@@ -216,7 +216,7 @@ export default function DomainRadarChart({
   if (isLoading) {
     return (
       <div
-        className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200 bg-white dark:border-white/10 dark:bg-linear-to-br dark:from-[#090d16] dark:to-[#05070e] p-6 shadow-sm dark:shadow-2xl ${className}`}
+        className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800/80 dark:bg-[#090d16] p-6 shadow-xs ${className}`}
       >
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-4">
           <div className="flex items-center gap-3">
@@ -236,11 +236,8 @@ export default function DomainRadarChart({
 
   return (
     <div
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:border-white/10 dark:bg-linear-to-br dark:from-[#090d16] dark:via-[#070b14] dark:to-[#04060c] p-5 sm:p-6 shadow-sm dark:shadow-2xl backdrop-blur-2xl transition-all duration-300 hover:border-indigo-400/40 dark:hover:border-indigo-500/30 ${className}`}
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-[#090d16] p-5 sm:p-6 shadow-xs transition-all duration-300 hover:border-indigo-400/40 dark:hover:border-indigo-500/30 ${className}`}
     >
-      {/* Glow de fundo */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-emerald-600/10 blur-3xl" />
 
       {/* ================= CABEÇALHO DO COMPONENTE ================= */}
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/70 dark:border-white/5 pb-4">

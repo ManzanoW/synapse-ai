@@ -229,16 +229,14 @@ export function DailyQuestsPanel() {
   const completedCount = quests.filter((q) => q.completed).length;
 
   return (
-    <div className="relative flex flex-col justify-start overflow-hidden rounded-3xl border border-violet-500/20 bg-white dark:bg-linear-to-br dark:from-[#0c0f1d] dark:via-[#080b16] dark:to-[#04060d] p-4 sm:p-5 shadow-2xl backdrop-blur-2xl transition-all duration-300 group hover:border-violet-500/35">
-      {/* Glow de ambientação no topo */}
-      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/50 to-transparent" />
-      <div className="pointer-events-none absolute -top-20 -left-20 h-40 w-40 rounded-full bg-violet-600/10 blur-3xl" />
+    <div className="relative flex flex-col justify-start overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-4 sm:p-5 shadow-xs transition-all duration-300 group hover:border-indigo-500/35">
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
 
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-200 dark:border-white/5 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/15 text-violet-600 dark:text-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.2)] group-hover:scale-105 transition-transform">
-            <Trophy size={16} className="text-violet-600 dark:text-violet-300" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
+            <Trophy size={16} className="text-indigo-600 dark:text-indigo-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -285,7 +283,7 @@ export function DailyQuestsPanel() {
                   quest.claimed
                     ? "bg-slate-100/70 dark:bg-white/[0.015] border-slate-200 dark:border-white/5 opacity-60"
                     : quest.completed
-                      ? "bg-violet-50 dark:bg-linear-to-r dark:from-violet-950/30 dark:via-slate-900/60 dark:to-indigo-950/20 border-violet-300 dark:border-violet-500/40 shadow-xs dark:shadow-[0_0_20px_rgba(139,92,246,0.12)]"
+                      ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-500/40 shadow-xs"
                       : "bg-white hover:bg-slate-50 dark:bg-[#060911]/80 dark:hover:bg-[#070b16] border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 shadow-xs"
                 }`}
               >
@@ -351,7 +349,7 @@ export function DailyQuestsPanel() {
                       <button
                         onClick={() => handleClaim(quest.id, quest.xpReward)}
                         disabled={isPending}
-                        className="px-3 py-1 bg-linear-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-[10px] rounded-lg shadow-md shadow-violet-600/30 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer animate-pulse"
+                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[10px] rounded-lg shadow-md shadow-indigo-600/25 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <Gift size={12} />
                         <span>Resgatar</span>
@@ -370,8 +368,8 @@ export function DailyQuestsPanel() {
                     <div
                       className={`h-full transition-all duration-500 rounded-full ${
                         quest.completed
-                          ? "bg-linear-to-r from-violet-500 via-fuchsia-400 to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                          : "bg-linear-to-r from-indigo-500 to-violet-500 shadow-[0_0_8px_rgba(99,102,241,0.3)]"
+                          ? "bg-linear-to-r from-indigo-500 to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                          : "bg-linear-to-r from-indigo-600 to-cyan-500"
                       }`}
                       style={{ width: `${progress}%` }}
                     />

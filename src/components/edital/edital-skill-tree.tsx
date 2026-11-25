@@ -503,9 +503,7 @@ export function EditalSkillTree({
   return (
     <div className="space-y-6">
       {/* HEADER DA CONSTELAÇÃO: VISÃO PANORÂMICA RPG */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#070b16] via-[#0b1022] to-[#080d1a] border border-indigo-500/30 p-5 sm:p-7 shadow-2xl backdrop-blur-2xl">
-        <div className="absolute -top-32 -right-32 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-2xl bg-[#090d16] border border-indigo-500/30 p-5 sm:p-7 shadow-xs">
 
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-xl">
@@ -657,13 +655,8 @@ export function EditalSkillTree({
           return (
             <div
               key={group.subject.id}
-              className="relative rounded-3xl bg-white dark:bg-[#060913]/90 border border-slate-200 dark:border-slate-800/90 p-5 sm:p-7 backdrop-blur-xl shadow-xs dark:shadow-xl space-y-6 overflow-hidden"
+              className="relative rounded-2xl bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 p-5 sm:p-7 shadow-xs space-y-6 overflow-hidden"
             >
-              {/* Efeito Glow da Matéria */}
-              <div
-                className="absolute -top-20 -left-20 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-10 dark:opacity-20"
-                style={{ backgroundColor: subColor }}
-              />
 
               {/* Núcleo Estelar da Matéria (Cosmic Core) */}
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-4 relative z-10">
@@ -760,20 +753,12 @@ export function EditalSkillTree({
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="relative w-full max-w-lg bg-[#080c16] rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 overflow-hidden border"
+                className="relative w-full max-w-lg bg-[#090d16] rounded-2xl p-6 sm:p-7 shadow-2xl space-y-5 overflow-hidden border"
                 style={{
                   borderColor: hexToRgba(activeColor, 0.45),
-                  boxShadow: `0 0 40px ${hexToRgba(activeColor, 0.18)}, 0 20px 50px -10px rgba(0, 0, 0, 0.85)`,
+                  boxShadow: `0 0 24px ${hexToRgba(activeColor, 0.14)}, 0 20px 50px -10px rgba(0, 0, 0, 0.85)`,
                 }}
               >
-                {/* Glow do Modal na Cor da Matéria */}
-                <div
-                  className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-                  style={{
-                    backgroundColor: activeColor,
-                    opacity: 0.18,
-                  }}
-                />
 
                 {/* Cabeçalho */}
                 <div className="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4 relative z-10">
@@ -931,10 +916,10 @@ export function EditalSkillTree({
                         color: activeColor,
                       });
                     }}
-                    className="w-full py-3 px-4 rounded-xl bg-violet-100 hover:bg-violet-200 dark:bg-linear-to-r dark:from-violet-600/25 dark:to-indigo-600/25 dark:hover:from-violet-600/40 dark:hover:to-indigo-600/40 border border-violet-300 dark:border-violet-500/40 text-violet-800 hover:text-violet-950 dark:text-violet-200 dark:hover:text-white text-xs font-bold transition-all shadow-xs dark:shadow-md dark:shadow-violet-950/40 flex items-center justify-between cursor-pointer active:scale-95"
+                    className="w-full py-3 px-4 rounded-xl bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-600/20 dark:hover:bg-indigo-600/35 border border-indigo-300 dark:border-indigo-500/40 text-indigo-800 hover:text-indigo-950 dark:text-indigo-200 dark:hover:text-white text-xs font-bold transition-all shadow-xs flex items-center justify-between cursor-pointer active:scale-95"
                   >
                     <div className="flex items-center gap-2">
-                      <Brain size={15} className="text-violet-600 dark:text-violet-400" />
+                      <Brain size={15} className="text-indigo-600 dark:text-indigo-400" />
                       <span>Ver Mapa Mental do Tópico (SVG)</span>
                     </div>
                     <ArrowRight size={14} />
@@ -976,7 +961,7 @@ export function EditalSkillTree({
       {/* MODAL RAIO-X EXCLUSIVO PRO */}
       {showProIncidenceModal && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-[#090d1c] border border-amber-500/40 rounded-3xl w-full max-w-md p-6 shadow-2xl text-center space-y-4 relative">
+          <div className="bg-[#090d16] border border-amber-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl text-center space-y-4 relative">
             <button
               type="button"
               onClick={() => setShowProIncidenceModal(false)}

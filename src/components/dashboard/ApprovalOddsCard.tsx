@@ -72,7 +72,7 @@ export function ApprovalOddsCard({
   if (loading) {
     return (
       <div
-        className={`relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-6 shadow-2xl backdrop-blur-2xl animate-pulse ${className}`}
+        className={`relative overflow-hidden rounded-2xl border border-slate-800/80 bg-[#090d16] p-6 shadow-xs animate-pulse ${className}`}
       >
         <div className="h-4 w-36 bg-white/5 rounded-full mb-6" />
         <div className="flex items-center gap-6">
@@ -91,15 +91,13 @@ export function ApprovalOddsCard({
   if (!data || !data.hasEnoughData) {
     return (
       <div
-        className={`group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl ${className}`}
+        className={`group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-[#090d16] p-5 sm:p-6 shadow-xs ${className}`}
       >
-        {/* Linha Neon Superior Violeta */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-violet-500/40 to-transparent" />
-        <div className="pointer-events-none absolute -top-12 -left-12 h-32 w-32 rounded-full bg-violet-600/10 blur-3xl" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
 
         <div className="flex items-center justify-between pb-3 border-b border-white/5">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-2 text-violet-400">
+            <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2 text-indigo-400">
               <BrainCircuit size={18} />
             </div>
             <div>
@@ -191,16 +189,11 @@ export function ApprovalOddsCard({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-950/60 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl transition-all ${className}`}
+      className={`group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-[#090d16] p-5 sm:p-6 shadow-xs transition-all ${className}`}
     >
-      {/* Luz Neon no topo adaptada ao status */}
+      {/* Luz no topo adaptada ao status */}
       <div
         className={`absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent ${statusTheme.neon} to-transparent`}
-      />
-
-      {/* Glow Cósmico de Fundo */}
-      <div
-        className={`pointer-events-none absolute -top-16 -right-16 h-36 w-36 rounded-full ${statusTheme.ambient} blur-3xl`}
       />
 
       {/* Cabeçalho */}
@@ -349,7 +342,7 @@ export function ApprovalOddsCard({
               initial={{ width: 0 }}
               animate={{ width: `${data.pillars.coverage.score}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="h-full rounded-full bg-linear-to-r from-violet-600 to-purple-400"
+              className="h-full rounded-full bg-linear-to-r from-indigo-600 to-cyan-400"
             />
           </div>
         </div>
