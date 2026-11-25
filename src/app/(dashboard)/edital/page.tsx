@@ -96,6 +96,7 @@ function PlannerContent() {
   // Menu de Mais Ações
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const editalSpotlight = useSpotlight("synapse_spotlight_edital_v1");
+  const [manualSpotlightOpen, setManualSpotlightOpen] = useState(false);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -361,7 +362,14 @@ function PlannerContent() {
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <SpotlightTriggerButton onClick={editalSpotlight.toggle} label="Como Funciona?" accentColor="indigo" />
+            <SpotlightTriggerButton
+              onClick={() => {
+                setManualSpotlightOpen(!manualSpotlightOpen);
+                editalSpotlight.toggle();
+              }}
+              label="Como Funciona?"
+              accentColor="indigo"
+            />
             <Link
               href="/week"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-300 text-xs font-semibold transition-all shadow-sm active:scale-95"
@@ -376,33 +384,36 @@ function PlannerContent() {
         {/* GUIA PASSO A PASSO / TOUR DO EDITAL */}
         <PageSpotlightBanner
           storageKey="synapse_spotlight_edital_v1"
-          externalIsOpen={editalSpotlight.isOpen}
-          onClose={editalSpotlight.dismiss}
-          badgeText="📋 Guia do Edital Verticalizado"
-          title="Domine 100% do Conteúdo Programático em 3 passos:"
-          description="O Edital Verticalizado organiza cada linha do conteúdo oficial da sua banca para você nunca estudar às cegas:"
+          externalIsOpen={editalSpotlight.isOpen && (subjects.length > 0 || manualSpotlightOpen)}
+          onClose={() => {
+            setManualSpotlightOpen(false);
+            editalSpotlight.dismiss();
+          }}
+          badgeText="Guia do Edital Verticalizado"
+          title="Como funciona o Edital Verticalizado:"
+          description="Organize cada linha do conteúdo oficial da sua prova para direcionar seu ciclo de estudos com clareza:"
           accentColor="indigo"
-          primaryActionLabel="Entendi, explorar meu edital!"
+          primaryActionLabel="Entendido"
           steps={[
             {
               icon: <BookOpen className="w-4 h-4" />,
               title: "1. Acompanhe seu Progresso por Matéria",
               description:
-                "Visualize todos os tópicos exigidos no concurso com status de estudo, taxa de acerto e ciclo de revisão Ebbinghaus.",
+                "Visualize todos os tópicos exigidos no concurso com status de estudo, taxa de acerto e ciclo de revisão espaçada.",
               tag: "Visão Geral",
             },
             {
               icon: <Scale className="w-4 h-4" />,
               title: "2. Calibre os Pesos da sua Banca",
               description:
-                "Defina o peso e a relevância de cada disciplina para o algoritmo priorizar as matérias com maior pontuação no edital.",
+                "Defina o peso e a relevância de cada disciplina para o algoritmo priorizar as matérias de maior impacto na sua nota.",
               tag: "Estratégia",
             },
             {
               icon: <Printer className="w-4 h-4" />,
               title: "3. Imprima ou Importe Novo Edital",
               description:
-                "Gere seu Edital A4 para colar na parede ou importe um PDF em segundos via Inteligência Artificial.",
+                "Gere seu Edital A4 para colar na parede ou importe o PDF oficial da sua banca.",
               tag: "Prático & Físico",
             },
           ]}
@@ -486,10 +497,10 @@ function PlannerContent() {
               type="button"
               onClick={() => setIsImportModalOpen(true)}
               className="flex items-center justify-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
-              title="Escolha uma carreira pronta ou gere uma personalizada com IA"
+              title="Selecione um edital por carreira ou importe seu concurso"
             >
               <Sparkles size={13} className="text-amber-400" />
-              <span className="hidden sm:inline">Carreiras & IA</span>
+              <span className="hidden sm:inline">Carreiras Prontas</span>
               <span className="sm:hidden">Carreiras</span>
             </button>
 
@@ -589,212 +600,214 @@ function PlannerContent() {
           </div>
         </div>
 
-        {/* Header de Métricas Globais (Cards de KPIs Executivos) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          <div className="bg-[#090d16]/90 border border-slate-800/80 p-4 rounded-2xl shadow-lg relative overflow-hidden group hover:border-indigo-500/30 transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                Avanço no Edital
-              </span>
-              <span className="text-xs font-mono font-bold text-indigo-400">
-                {Math.round(
-                  (topics.filter(
-                    (t) => t.firstStudy && t.firstStudy !== "Pendente",
-                  ).length /
-                    (topics.length || 1)) *
-                    100,
-                )}
-                %
-              </span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black font-mono text-white tracking-tight">
-                {
-                  topics.filter(
-                    (t) => t.firstStudy && t.firstStudy !== "Pendente",
-                  ).length
-                }
-              </span>
-              <span className="text-xs text-slate-500 font-mono">
-                / {topics.length} tópicos concluídos
-              </span>
-            </div>
-            <div className="mt-3 w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full transition-all duration-500"
-                style={{
-                  width: `${Math.min(
-                    100,
-                    Math.round(
-                      (topics.filter(
-                        (t) => t.firstStudy && t.firstStudy !== "Pendente",
-                      ).length /
-                        (topics.length || 1)) *
-                        100,
-                    ),
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="bg-[#090d16]/90 border border-slate-800/80 p-4 rounded-2xl shadow-lg relative overflow-hidden group hover:border-emerald-500/30 transition-all">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                Disciplinas
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                Mapeadas
-              </span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black font-mono text-white tracking-tight">
-                {subjects.length}
-              </span>
-              <span className="text-xs text-slate-500">
-                disciplinas ativas no plano
-              </span>
-            </div>
-            <p className="mt-3 text-[11px] text-slate-400 truncate">
-              {subjects
-                .slice(0, 3)
-                .map((s) => s.name)
-                .join(" • ")}
-              {subjects.length > 3 ? ` +${subjects.length - 3}` : ""}
-            </p>
-          </div>
-
-          <div className="bg-[#090d16]/90 border border-slate-800/80 p-4 rounded-2xl shadow-lg relative overflow-hidden group hover:border-cyan-500/30 transition-all">
-            {(() => {
-              const avgPerf = Math.round(
-                topics.reduce(
-                  (acc: number, t) => acc + (t.performance || 0),
-                  0,
-                ) / (topics.length || 1),
-              );
-              return (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                      Desempenho Geral
-                    </span>
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
-                        avgPerf >= 70
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : avgPerf >= 50
-                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                            : "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                      }`}
-                    >
-                      {avgPerf >= 70
-                        ? "Forte"
-                        : avgPerf >= 50
-                          ? "Em Evolução"
-                          : "Reforço"}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-2xl font-black font-mono text-white tracking-tight">
-                      {avgPerf}%
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      média em questões e revisões
-                    </span>
-                  </div>
-                  <p className="mt-3 text-[11px] text-slate-400">
-                    Baseado no histórico de revisões e simulados resolvidos
-                  </p>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* GUIA DIDÁTICO QUANDO NÃO HÁ MATÉRIAS */}
-
-        {!loading && subjects.length === 0 && (
-          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-linear-to-br from-[#090d19] via-[#050812] to-[#020409] p-5 sm:p-8 shadow-2xl">
-            <div className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
-            <div className="relative z-10 max-w-3xl space-y-5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-[11px] font-bold text-indigo-300">
-                <Sparkles size={14} className="animate-pulse" />
-                <span>Como cadastrar seu Edital em segundos</span>
+        {/* Header de Métricas Globais (Cards de KPIs Executivos) - Exibido apenas quando há disciplinas cadastradas */}
+        {!loading && subjects.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="bg-[#090d16]/90 border border-slate-800/80 p-4 rounded-2xl shadow-lg relative overflow-hidden group hover:border-indigo-500/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Avanço no Edital
+                </span>
+                <span className="text-xs font-mono font-bold text-indigo-400">
+                  {Math.round(
+                    (topics.filter(
+                      (t) => t.firstStudy && t.firstStudy !== "Pendente",
+                    ).length /
+                      (topics.length || 1)) *
+                      100,
+                  )}
+                  %
+                </span>
               </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black font-mono text-white tracking-tight">
+                  {
+                    topics.filter(
+                      (t) => t.firstStudy && t.firstStudy !== "Pendente",
+                    ).length
+                  }
+                </span>
+                <span className="text-xs text-slate-500 font-mono">
+                  / {topics.length} tópicos concluídos
+                </span>
+              </div>
+              <div className="mt-3 w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.round(
+                        (topics.filter(
+                          (t) => t.firstStudy && t.firstStudy !== "Pendente",
+                        ).length /
+                          (topics.length || 1)) *
+                          100,
+                      ),
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
 
-              <div>
-                <h3 className="text-lg sm:text-2xl font-black text-white tracking-tight">
-                  Importe as matérias do seu Concurso com IA
+            <div className="bg-[#090d16]/90 border border-slate-800/80 p-4 rounded-2xl shadow-lg relative overflow-hidden group hover:border-emerald-500/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Disciplinas
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                  Mapeadas
+                </span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black font-mono text-white tracking-tight">
+                  {subjects.length}
+                </span>
+                <span className="text-xs text-slate-500">
+                  disciplinas ativas no plano
+                </span>
+              </div>
+              <p className="mt-3 text-[11px] text-slate-400 truncate">
+                {subjects
+                  .slice(0, 3)
+                  .map((s) => s.name)
+                  .join(" • ")}
+                {subjects.length > 3 ? ` +${subjects.length - 3}` : ""}
+              </p>
+            </div>
+
+            <div className="bg-[#090d16]/90 border border-slate-800/80 p-4 rounded-2xl shadow-lg relative overflow-hidden group hover:border-cyan-500/30 transition-all">
+              {(() => {
+                const avgPerf = Math.round(
+                  topics.reduce(
+                    (acc: number, t) => acc + (t.performance || 0),
+                    0,
+                  ) / (topics.length || 1),
+                );
+                return (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        Desempenho Geral
+                      </span>
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
+                          avgPerf >= 70
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : avgPerf >= 50
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                        }`}
+                      >
+                        {avgPerf >= 70
+                          ? "Forte"
+                          : avgPerf >= 50
+                            ? "Em Evolução"
+                            : "Reforço"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className="text-2xl font-black font-mono text-white tracking-tight">
+                        {avgPerf}%
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        média em questões e revisões
+                      </span>
+                    </div>
+                    <p className="mt-3 text-[11px] text-slate-400">
+                      Baseado no histórico de revisões e simulados resolvidos
+                    </p>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* EMPTY STATE EXECUTIVO: SELEÇÃO DE CARREIRA OU IMPORTAÇÃO DIRETA */}
+        {!loading && subjects.length === 0 && (
+          <div className="relative rounded-2xl border border-slate-800/80 bg-[#0c121e]/90 p-5 sm:p-7 shadow-xl">
+            <div className="max-w-4xl space-y-6">
+              {/* Header do Onboarding */}
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-2 rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-[11px] font-semibold text-slate-300">
+                  <BookOpen size={13} className="text-cyan-400" />
+                  <span>Configuração Inicial do Concurso</span>
+                </div>
+                <h3 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
+                  Como você prefere estruturar seu Edital?
                 </h3>
-                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                  Não perca tempo criando tópico por tópico manualmente. Você só
-                  precisa copiar o texto do edital em PDF e colar no Synapse.
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-2xl">
+                  Conecte o conteúdo programático da sua prova para ativar automaticamente o cronograma semanal, ciclos de revisão e raio-x de incidência.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3.5 space-y-1.5">
-                  <div className="flex items-center justify-between text-indigo-400">
-                    <BookOpen size={16} />
-                    <span className="font-mono text-xs font-black text-slate-500">
-                      01
-                    </span>
+              {/* Duas Opções Principais em Destaque */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                {/* Opção 1: Importar Edital Próprio */}
+                <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/70 p-5 hover:border-slate-700 transition-all">
+                  <div className="space-y-2.5">
+                    <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                      <UploadCloud size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-100">
+                        Tenho o Edital da Minha Prova
+                      </h4>
+                      <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                        Envie o arquivo PDF do edital ou cole o conteúdo programático do Diário Oficial para mapeamento automático.
+                      </p>
+                    </div>
                   </div>
-                  <h4 className="text-xs font-bold text-slate-200">
-                    Abra seu Edital PDF
-                  </h4>
-                  <p className="text-[11px] text-slate-400 leading-normal">
-                    Vá até a seção de Conteúdo Programático.
-                  </p>
+                  <div className="pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+                    >
+                      <UploadCloud size={15} />
+                      <span>Importar PDF ou Texto Oficial</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3.5 space-y-1.5">
-                  <div className="flex items-center justify-between text-cyan-400">
-                    <Copy size={16} />
-                    <span className="font-mono text-xs font-black text-slate-500">
-                      02
-                    </span>
+                {/* Opção 2: Adicionar Matérias Manualmente */}
+                <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/70 p-5 hover:border-slate-700 transition-all">
+                  <div className="space-y-2.5">
+                    <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                      <Plus size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-100">
+                        Montar Disciplinas Manualmente
+                      </h4>
+                      <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                        Crie matérias personalizadas uma a uma, definindo pesos oficiais e tópicos específicos no seu próprio ritmo.
+                      </p>
+                    </div>
                   </div>
-                  <h4 className="text-xs font-bold text-slate-200">
-                    Copie o Texto Bruto
-                  </h4>
-                  <p className="text-[11px] text-slate-400 leading-normal">
-                    Copie todo o bloco de disciplinas sem formatar.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-3.5 space-y-1.5">
-                  <div className="flex items-center justify-between text-emerald-400">
-                    <Sparkles size={16} />
-                    <span className="font-mono text-xs font-black text-slate-500">
-                      03
-                    </span>
+                  <div className="pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:text-white transition-all active:scale-[0.98] cursor-pointer"
+                    >
+                      <Plus size={15} />
+                      <span>Cadastrar Matéria Manual</span>
+                    </button>
                   </div>
-                  <h4 className="text-xs font-bold text-slate-200">
-                    A IA Mapeia Tudo
-                  </h4>
-                  <p className="text-[11px] text-slate-400 leading-normal">
-                    Cole no Synapse para gerar seu plano.
-                  </p>
                 </div>
               </div>
 
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <button
-                  onClick={() => setIsImportModalOpen(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 text-xs font-extrabold text-white shadow-lg transition-all active:scale-95 cursor-pointer"
-                >
-                  <UploadCloud size={16} />
-                  <span>Importar meu Edital em PDF / Texto</span>
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-
-              {/* MODELOS PRONTOS EM 1 CLIQUE */}
-              <div className="pt-4 border-t border-white/10 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">
-                    Ou Escolha um Modelo Pronto por Carreira (1 Clique):
+              {/* SEÇÃO DE CARREIRAS PRONTAS (1 CLIQUE) */}
+              <div className="pt-3 border-t border-slate-800/80 space-y-3">
+                <div>
+                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider block">
+                    Ou Selecione uma Carreira Pré-Mapeada (1 Clique)
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Grades curriculares padronizadas para os principais cargos e órgãos do país:
                   </span>
                 </div>
                 <StarterEditalSelector
