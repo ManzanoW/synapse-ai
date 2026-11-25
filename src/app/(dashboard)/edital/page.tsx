@@ -351,13 +351,9 @@ function PlannerContent() {
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
                 Edital Verticalizado
               </h1>
-              {subjects.length > 0 ? (
-                <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+              {subjects.length > 0 && (
+                <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800">
                   {topics.length} tópicos • {subjects.length} matérias
-                </span>
-              ) : (
-                <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-400 border border-slate-700/80">
-                  Planejamento Inicial
                 </span>
               )}
             </div>
@@ -378,7 +374,7 @@ function PlannerContent() {
             />
             <Link
               href="/week"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-300 text-xs font-semibold transition-all shadow-sm active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all shadow-xs active:scale-95"
               title="Ir para o Cronograma Semanal de Estudos"
             >
               <CalendarDays size={13} className="text-cyan-400" />
@@ -726,97 +722,48 @@ function PlannerContent() {
           </div>
         )}
 
-        {/* EMPTY STATE EXECUTIVO: SELEÇÃO DE CARREIRA OU IMPORTAÇÃO DIRETA */}
+        {/* EMPTY STATE EXECUTIVO: FOCO EM 1 ÚNICA DECISÃO ACIMA DA DOBRA */}
         {!loading && subjects.length === 0 && (
-          <div className="relative rounded-2xl border border-slate-800/80 bg-[#0c121e]/90 p-5 sm:p-7 shadow-xl">
-            <div className="max-w-4xl space-y-6">
-              {/* Header do Onboarding */}
-              <div className="space-y-1.5">
-                <div className="inline-flex items-center gap-2 rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-[11px] font-semibold text-slate-300">
-                  <BookOpen size={13} className="text-cyan-400" />
-                  <span>Configuração Inicial do Concurso</span>
-                </div>
-                <h3 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
-                  Como você prefere estruturar seu Edital?
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-2xl">
-                  Conecte o conteúdo programático da sua prova para ativar automaticamente o cronograma semanal, ciclos de revisão e raio-x de incidência.
-                </p>
-              </div>
-
-              {/* Duas Opções Principais em Destaque */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                {/* Opção 1: Importar Edital Próprio */}
-                <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/70 p-5 hover:border-slate-700 transition-all">
-                  <div className="space-y-2.5">
-                    <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                      <UploadCloud size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-100">
-                        Tenho o Edital da Minha Prova
-                      </h4>
-                      <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                        Envie o arquivo PDF do edital ou cole o conteúdo programático do Diário Oficial para mapeamento automático.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setIsImportModalOpen(true)}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-[0.98] cursor-pointer"
-                    >
-                      <UploadCloud size={15} />
-                      <span>Importar PDF ou Texto Oficial</span>
-                      <ArrowRight size={14} />
-                    </button>
-                  </div>
+          <div className="relative rounded-lg border border-slate-800 bg-[#0B0F17] p-5 sm:p-6 shadow-lg">
+            <div className="space-y-5">
+              {/* Header Único com Ações Diretas de Importação/Manual */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                    Estruture seu Edital Verticalizado
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-2xl">
+                    Selecione sua carreira abaixo para carregar a grade oficial calibrada ou importe o documento específico da sua banca.
+                  </p>
                 </div>
 
-                {/* Opção 2: Adicionar Matérias Manualmente */}
-                <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/70 p-5 hover:border-slate-700 transition-all">
-                  <div className="space-y-2.5">
-                    <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                      <Plus size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-100">
-                        Montar Disciplinas Manualmente
-                      </h4>
-                      <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                        Crie matérias personalizadas uma a uma, definindo pesos oficiais e tópicos específicos no seu próprio ritmo.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:text-white transition-all active:scale-[0.98] cursor-pointer"
-                    >
-                      <Plus size={15} />
-                      <span>Cadastrar Matéria Manual</span>
-                    </button>
-                  </div>
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsImportModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    <UploadCloud size={14} />
+                    <span>Importar Edital Oficial (PDF / Texto)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:text-white transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span>Matéria Manual</span>
+                  </button>
                 </div>
               </div>
 
-              {/* SEÇÃO DE CARREIRAS PRONTAS (1 CLIQUE) */}
-              <div className="pt-3 border-t border-slate-800/80 space-y-3">
-                <div>
-                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider block">
-                    Ou Selecione uma Carreira Pré-Mapeada (1 Clique)
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    Grades curriculares padronizadas para os principais cargos e órgãos do país:
-                  </span>
-                </div>
-                <StarterEditalSelector
-                  onSuccess={() => refreshData()}
-                  showCustomLink={false}
-                />
-              </div>
+              {/* Catálogo Direto de Carreiras (Sem Cabeçalho Duplicado) */}
+              <StarterEditalSelector
+                onSuccess={() => refreshData()}
+                showCustomLink={false}
+                hideHeader={true}
+              />
             </div>
           </div>
         )}

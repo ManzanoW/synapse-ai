@@ -127,7 +127,7 @@ export function PageSpotlightBanner({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.99 }}
           transition={{ duration: 0.22, ease: "easeOut" }}
-          className={`relative overflow-hidden rounded-2xl border ${colorStyles.cardBorder} bg-[#0c121e]/95 p-5 sm:p-6 shadow-xl transition-colors`}
+          className={`relative overflow-hidden rounded-lg border ${colorStyles.cardBorder} bg-[#0B0F17] p-5 sm:p-6 shadow-lg transition-colors`}
         >
           <div className="relative z-10 space-y-5">
             {/* Header com badge, título e botão de fechar */}
@@ -135,7 +135,7 @@ export function PageSpotlightBanner({
               <div className="space-y-1.5 max-w-2xl">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border ${colorStyles.badge}`}
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold border ${colorStyles.badge}`}
                   >
                     <Info size={13} className="text-cyan-400" />
                     {badgeText}
@@ -165,18 +165,18 @@ export function PageSpotlightBanner({
               {steps.map((step, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3"
+                  className="p-4 rounded-lg bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3"
                 >
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <div
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center border ${colorStyles.stepIconBg}`}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center border ${colorStyles.stepIconBg}`}
                       >
                         {step.icon}
                       </div>
                       {step.tag && (
                         <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${colorStyles.tag}`}
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${colorStyles.tag}`}
                         >
                           {step.tag}
                         </span>
@@ -218,24 +218,16 @@ export function PageSpotlightBanner({
 export function SpotlightTriggerButton({
   onClick,
   label = "Como Funciona?",
-  accentColor = "indigo",
 }: {
   onClick: () => void;
   label?: string;
   accentColor?: "violet" | "indigo" | "emerald" | "amber";
 }) {
-  const colorStyles = {
-    violet: "hover:text-violet-300 hover:border-violet-500/40 hover:bg-violet-500/10",
-    indigo: "hover:text-indigo-300 hover:border-indigo-500/40 hover:bg-indigo-500/10",
-    emerald: "hover:text-emerald-300 hover:border-emerald-500/40 hover:bg-emerald-500/10",
-    amber: "hover:text-amber-300 hover:border-amber-500/40 hover:bg-amber-500/10",
-  }[accentColor];
-
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-slate-900/60 text-slate-300 text-xs font-semibold backdrop-blur-md transition-all cursor-pointer ${colorStyles}`}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
       title="Ver guia rápido desta tela"
     >
       <HelpCircle size={14} className="text-slate-400" />
