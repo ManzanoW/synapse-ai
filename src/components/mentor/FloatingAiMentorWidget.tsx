@@ -123,19 +123,19 @@ export function FloatingAiMentorWidget() {
             triggerHaptic("medium");
             setIsOpen((prev) => !prev);
           }}
-          className={`flex items-center gap-2 p-3 sm:px-4 sm:py-3 rounded-full shadow-2xl transition-all cursor-pointer border ${
+          className={`flex items-center gap-2.5 p-3 sm:px-4 sm:py-2.5 rounded-full shadow-xl transition-all cursor-pointer border backdrop-blur-md ${
             isOpen
               ? "bg-slate-900 border-slate-700 text-slate-300"
-              : "bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 hover:from-violet-500 hover:to-indigo-500 border-violet-400/30 text-white shadow-violet-900/50"
+              : "bg-slate-900/95 hover:bg-slate-800 border-slate-700 hover:border-indigo-500/50 text-slate-200 hover:text-white shadow-slate-950/60"
           }`}
-          title="Tirar dúvida rápida com o Professor IA"
+          title="Tirar dúvida rápida com o Professor da Prova"
         >
-          <div className="relative">
-            <Sparkles size={18} className="text-amber-300" />
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute -top-1 -right-1" />
+          <div className="relative flex items-center justify-center">
+            <Bot size={17} className="text-indigo-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5 ring-2 ring-slate-900" />
           </div>
-          <span className="text-xs font-bold hidden sm:inline">
-            {isOpen ? "Fechar Dúvidas" : "Dúvida? Pergunte à IA"}
+          <span className="text-xs font-semibold hidden sm:inline">
+            {isOpen ? "Fechar Dúvidas" : "Plantão de Dúvidas"}
           </span>
         </motion.button>
       </div>
