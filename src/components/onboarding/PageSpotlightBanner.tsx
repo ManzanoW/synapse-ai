@@ -70,12 +70,12 @@ export function useSpotlight(storageKey: string) {
 
 export function PageSpotlightBanner({
   storageKey,
-  badgeText = "💡 Dica de Primeiro Acesso",
+  badgeText = "Guia Rápido",
   title,
   description,
   accentColor = "indigo",
   steps,
-  primaryActionLabel = "Entendi, pronto para estudar!",
+  primaryActionLabel = "Entendido",
   externalIsOpen,
   onClose,
 }: PageSpotlightBannerProps) {
@@ -90,40 +90,32 @@ export function PageSpotlightBanner({
 
   const colorStyles = {
     violet: {
-      cardBorder: "border-violet-500/30 hover:border-violet-500/50",
-      bgGradient: "from-violet-950/40 via-slate-900/80 to-slate-950/90",
-      badge: "bg-violet-500/15 text-violet-300 border-violet-500/30",
-      button: "bg-violet-600 hover:bg-violet-500 text-white shadow-violet-900/40",
-      stepIconBg: "bg-violet-500/15 border-violet-500/25 text-violet-300",
-      tag: "bg-violet-500/10 text-violet-300 border-violet-500/20",
-      glow: "bg-violet-600/10",
+      cardBorder: "border-slate-800/80",
+      badge: "bg-slate-800/80 text-slate-300 border-slate-700",
+      button: "bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm",
+      stepIconBg: "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
+      tag: "bg-slate-800/80 text-slate-300 border-slate-700/80",
     },
     indigo: {
-      cardBorder: "border-indigo-500/30 hover:border-indigo-500/50",
-      bgGradient: "from-indigo-950/40 via-slate-900/80 to-slate-950/90",
-      badge: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
-      button: "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/40",
-      stepIconBg: "bg-indigo-500/15 border-indigo-500/25 text-indigo-300",
-      tag: "bg-indigo-500/10 text-indigo-300 border-indigo-500/20",
-      glow: "bg-indigo-600/10",
+      cardBorder: "border-slate-800/80",
+      badge: "bg-slate-800/80 text-slate-300 border-slate-700",
+      button: "bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm",
+      stepIconBg: "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
+      tag: "bg-slate-800/80 text-slate-300 border-slate-700/80",
     },
     emerald: {
-      cardBorder: "border-emerald-500/30 hover:border-emerald-500/50",
-      bgGradient: "from-emerald-950/40 via-slate-900/80 to-slate-950/90",
-      badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-      button: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/40",
-      stepIconBg: "bg-emerald-500/15 border-emerald-500/25 text-emerald-300",
-      tag: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-      glow: "bg-emerald-600/10",
+      cardBorder: "border-slate-800/80",
+      badge: "bg-slate-800/80 text-slate-300 border-slate-700",
+      button: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm",
+      stepIconBg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+      tag: "bg-slate-800/80 text-slate-300 border-slate-700/80",
     },
     amber: {
-      cardBorder: "border-amber-500/30 hover:border-amber-500/50",
-      bgGradient: "from-amber-950/40 via-slate-900/80 to-slate-950/90",
-      badge: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-      button: "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/40",
-      stepIconBg: "bg-amber-500/15 border-amber-500/25 text-amber-300",
-      tag: "bg-amber-500/10 text-amber-300 border-amber-500/20",
-      glow: "bg-amber-600/10",
+      cardBorder: "border-slate-800/80",
+      badge: "bg-slate-800/80 text-slate-300 border-slate-700",
+      button: "bg-amber-600 hover:bg-amber-500 text-white shadow-sm",
+      stepIconBg: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+      tag: "bg-slate-800/80 text-slate-300 border-slate-700/80",
     },
   }[accentColor];
 
@@ -131,33 +123,28 @@ export function PageSpotlightBanner({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: -12, scale: 0.99 }}
+          initial={{ opacity: 0, y: -10, scale: 0.99 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -12, scale: 0.98 }}
-          transition={{ duration: 0.28, ease: "easeOut" }}
-          className={`relative overflow-hidden rounded-3xl border ${colorStyles.cardBorder} bg-gradient-to-br ${colorStyles.bgGradient} p-5 sm:p-7 shadow-2xl backdrop-blur-xl transition-colors`}
+          exit={{ opacity: 0, y: -10, scale: 0.99 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className={`relative overflow-hidden rounded-2xl border ${colorStyles.cardBorder} bg-[#0c121e]/95 p-5 sm:p-6 shadow-xl transition-colors`}
         >
-          {/* Subtle Ambient Glow */}
-          <div
-            className={`pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full ${colorStyles.glow} blur-3xl`}
-          />
-
           <div className="relative z-10 space-y-5">
             {/* Header com badge, título e botão de fechar */}
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1.5 max-w-2xl">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide border uppercase ${colorStyles.badge}`}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border ${colorStyles.badge}`}
                   >
-                    <Sparkles size={13} />
+                    <Info size={13} className="text-cyan-400" />
                     {badgeText}
                   </span>
                 </div>
-                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                   {title}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
                   {description}
                 </p>
               </div>
@@ -165,9 +152,9 @@ export function PageSpotlightBanner({
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0 border border-white/10"
-                title="Fechar dica"
-                aria-label="Fechar dica"
+                className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0 border border-slate-800"
+                title="Fechar guia"
+                aria-label="Fechar guia"
               >
                 <X size={16} />
               </button>
@@ -178,12 +165,12 @@ export function PageSpotlightBanner({
               {steps.map((step, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-2xl bg-slate-900/60 border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between space-y-3"
+                  className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3"
                 >
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center border ${colorStyles.stepIconBg}`}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center border ${colorStyles.stepIconBg}`}
                       >
                         {step.icon}
                       </div>
@@ -195,10 +182,10 @@ export function PageSpotlightBanner({
                         </span>
                       )}
                     </div>
-                    <h4 className="text-xs sm:text-sm font-bold text-white">
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-100">
                       {step.title}
                     </h4>
-                    <p className="text-[11px] sm:text-xs text-slate-300/90 leading-relaxed">
+                    <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed">
                       {step.description}
                     </p>
                   </div>
@@ -207,17 +194,17 @@ export function PageSpotlightBanner({
             </div>
 
             {/* Ação de rodapé */}
-            <div className="flex items-center justify-between gap-4 pt-2 border-t border-white/10 flex-wrap">
+            <div className="flex items-center justify-between gap-4 pt-3 border-t border-slate-800/80 flex-wrap">
               <span className="text-[11px] text-slate-400">
-                Você pode reabrir esta dica a qualquer momento clicando em{" "}
+                Você pode consultar este guia a qualquer momento em{" "}
                 <strong className="text-slate-300">Como Funciona?</strong> no topo.
               </span>
               <button
                 type="button"
                 onClick={handleDismiss}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold shadow-lg transition-all cursor-pointer ${colorStyles.button}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${colorStyles.button}`}
               >
-                <Check size={15} />
+                <Check size={14} />
                 <span>{primaryActionLabel}</span>
               </button>
             </div>
