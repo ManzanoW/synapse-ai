@@ -282,11 +282,11 @@ export function StarterEditalSelector({
         </div>
       )}
 
-      {/* DIRETÓRIO SPLIT-PANE AUTORAL (PADRÃO LINEAR / VERCEL) */}
+      {/* DIRETÓRIO SPLIT-PANE AUTORAL COM IDENTIDADE VISUAL SYNAPSE AI */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Coluna Esquerda: Navegação Vertical de Carreiras */}
-        <div className="lg:col-span-4 flex flex-col gap-1 p-1.5 rounded-lg bg-[#0E0E11] border border-zinc-800/80">
-          <div className="px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
+        <div className="lg:col-span-4 flex flex-col gap-1 p-2 rounded-xl bg-[#090d16] border border-slate-800/80 shadow-lg">
+          <div className="px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
             Áreas de Concurso
           </div>
           {MACRO_AREAS.map((area) => {
@@ -300,17 +300,20 @@ export function StarterEditalSelector({
                   triggerHaptic("light");
                   setSelectedAreaId(area.id);
                 }}
-                className={`w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-md text-left transition-all cursor-pointer ${
+                className={`relative w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer ${
                   isSelected
-                    ? "bg-zinc-800/90 text-white font-semibold shadow-2xs"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 font-medium"
+                    ? "bg-indigo-500/15 text-white font-semibold border border-indigo-500/30 shadow-xs"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent font-medium"
                 }`}
               >
+                {isSelected && (
+                  <div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full bg-indigo-400" />
+                )}
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="shrink-0 opacity-85">{area.icon}</span>
+                  <span className="shrink-0">{area.icon}</span>
                   <div className="min-w-0">
                     <span className="text-xs block truncate">{area.name}</span>
-                    <span className="text-[10px] text-zinc-500 block truncate font-normal">
+                    <span className="text-[10px] text-slate-500 block truncate font-normal">
                       {area.tag}
                     </span>
                   </div>
@@ -318,8 +321,8 @@ export function StarterEditalSelector({
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
                     isSelected
-                      ? "bg-zinc-700 text-zinc-100 font-semibold"
-                      : "bg-zinc-900 text-zinc-500"
+                      ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold"
+                      : "bg-slate-900 text-slate-500 border border-slate-800"
                   }`}
                 >
                   {count}
@@ -331,32 +334,32 @@ export function StarterEditalSelector({
 
         {/* Coluna Direita: Tabela Executiva de Editais da Área Selecionada */}
         <div className="lg:col-span-8 space-y-3">
-          <div className="rounded-lg border border-zinc-800/80 bg-[#0E0E11] overflow-hidden">
+          <div className="rounded-xl border border-slate-800/80 bg-[#090d16] shadow-lg overflow-hidden">
             {/* Cabeçalho da Tabela */}
-            <div className="px-4 py-3 bg-zinc-900/50 border-b border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="px-4 py-3 bg-slate-900/60 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 {activeArea.icon}
-                <span className="text-xs font-semibold text-zinc-100">
+                <span className="text-xs font-bold text-white">
                   {activeArea.name}
                 </span>
-                <span className="text-[11px] text-zinc-500 hidden sm:inline">
+                <span className="text-[11px] text-slate-400 hidden sm:inline">
                   — {activeArea.description}
                 </span>
               </div>
 
-              <label className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-200 cursor-pointer select-none shrink-0">
+              <label className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-200 cursor-pointer select-none shrink-0">
                 <input
                   type="checkbox"
                   checked={replaceExisting}
                   onChange={(e) => setReplaceExisting(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded border-zinc-700 bg-zinc-900 text-zinc-100 focus:ring-0 cursor-pointer"
+                  className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
                 <span>Substituir grade atual</span>
               </label>
             </div>
 
             {/* Linhas de Editais */}
-            <div className="divide-y divide-zinc-800/70">
+            <div className="divide-y divide-slate-800/70">
               {filteredTemplates.map((tpl) => {
                 const isLoading = loadingTemplateId === tpl.id;
                 const visibleMaterias = tpl.materias.slice(0, 5);
@@ -365,19 +368,19 @@ export function StarterEditalSelector({
                 return (
                   <div
                     key={tpl.id}
-                    className="p-4 hover:bg-zinc-900/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="p-4 hover:bg-slate-900/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
                     <div className="space-y-1.5 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-sm font-semibold text-zinc-100 tracking-tight">
+                        <h4 className="text-sm font-bold text-white tracking-tight">
                           {tpl.title}
                         </h4>
-                        <span className="text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-mono font-semibold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
                           {tpl.materias.length} disciplinas
                         </span>
                       </div>
 
-                      <p className="text-xs text-zinc-400 leading-relaxed">
+                      <p className="text-xs text-slate-400 leading-relaxed">
                         {tpl.shortDescription}
                       </p>
 
@@ -386,13 +389,13 @@ export function StarterEditalSelector({
                         {visibleMaterias.map((m, idx) => (
                           <span
                             key={idx}
-                            className="text-[10px] text-zinc-300 bg-zinc-900/90 border border-zinc-800/90 px-2 py-0.5 rounded"
+                            className="text-[10px] text-slate-300 bg-slate-900/90 border border-slate-800 px-2 py-0.5 rounded"
                           >
                             {m.name}
                           </span>
                         ))}
                         {remainingCount > 0 && (
-                          <span className="text-[10px] font-mono text-zinc-400 px-1.5 py-0.5">
+                          <span className="text-[10px] font-mono text-indigo-400 px-1.5 py-0.5">
                             +{remainingCount}
                           </span>
                         )}
@@ -404,11 +407,11 @@ export function StarterEditalSelector({
                         type="button"
                         disabled={loadingTemplateId !== null || isGeneratingCustom}
                         onClick={() => handleSelectTemplate(tpl.id)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-950/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
                       >
                         {isLoading ? (
                           <>
-                            <Loader2 size={13} className="animate-spin text-zinc-900" />
+                            <Loader2 size={13} className="animate-spin text-white" />
                             <span>Carregando...</span>
                           </>
                         ) : (
@@ -428,10 +431,10 @@ export function StarterEditalSelector({
           {/* Barra Inline de Mapeamento Sob Demanda por Cargo */}
           <form
             onSubmit={handleGenerateCustom}
-            className="p-3 rounded-lg bg-[#0E0E11] border border-zinc-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5"
+            className="p-3 rounded-xl bg-[#090d16] border border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5"
           >
-            <div className="flex items-center gap-2 text-xs text-zinc-400 min-w-0">
-              <Search size={14} className="text-zinc-500 shrink-0" />
+            <div className="flex items-center gap-2 text-xs text-slate-400 min-w-0">
+              <Search size={14} className="text-indigo-400 shrink-0" />
               <span className="truncate">Outro cargo específico?</span>
             </div>
 
@@ -441,12 +444,12 @@ export function StarterEditalSelector({
                 value={customRoleInput}
                 onChange={(e) => setCustomRoleInput(e.target.value)}
                 placeholder={`Ex: Auditor SEFAZ-SP, Analista BACEN, Oficial...`}
-                className="flex-1 bg-zinc-950 border border-zinc-800 rounded-md px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/60"
               />
               <button
                 type="submit"
                 disabled={isGeneratingCustom || !customRoleInput.trim()}
-                className="px-3 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-semibold transition-all disabled:opacity-40 cursor-pointer flex items-center gap-1.5 shrink-0"
+                className="px-3.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold transition-all disabled:opacity-40 cursor-pointer flex items-center gap-1.5 shrink-0"
               >
                 {isGeneratingCustom ? (
                   <Loader2 size={13} className="animate-spin" />
@@ -464,7 +467,7 @@ export function StarterEditalSelector({
         <div className="pt-1 text-right">
           <a
             href="/edital"
-            className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 underline underline-offset-4 transition-colors font-medium"
+            className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-4 transition-colors font-medium"
           >
             <FileText size={13} />
             <span>Já possui o PDF do edital oficial? Importar documento</span>
