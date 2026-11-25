@@ -228,25 +228,25 @@ export function EssayWorkspace() {
       {/* SELETOR SUPERIOR DE ABAS */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-linear-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-600/25 dark:shadow-violet-950/50">
-            <PenTool size={22} />
+          <div className="p-2.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400">
+            <PenTool size={20} />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <span>Treino de Redação</span>
-              <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-500/30 text-[11px] font-mono font-bold">
-                CORREÇÃO PASSO A PASSO
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>Redação Oficial</span>
+              <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/25 text-[10px] font-mono font-semibold">
+                ESPELHO DE CORREÇÃO
               </span>
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Escreva sua redação na tela ou tire uma foto do seu papel para receber sua nota e dicas do que melhorar.
+              Pratique na folha oficial pautada ou envie foto do manuscrito para análise macro e microestrutural.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <SpotlightTriggerButton
-            accentColor="violet"
+            accentColor="indigo"
             onClick={spotlight.toggle}
             label="Como Funciona?"
           />
@@ -256,7 +256,7 @@ export function EssayWorkspace() {
               <button
                 type="button"
                 onClick={() => setIsThemeModalOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-600/25 dark:shadow-violet-950/50 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
               >
                 <Sparkles size={14} />
                 <span>Trocar Tema / Banca</span>
@@ -373,7 +373,7 @@ export function EssayWorkspace() {
               </button>
               <Link
                 href="/pricing"
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-violet-950/50 transition-all cursor-pointer group"
+                className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer group"
               >
                 <Crown size={14} className="fill-amber-300 text-amber-300 group-hover:scale-110 transition-transform" />
                 <span>Virar Pro</span>
@@ -381,7 +381,7 @@ export function EssayWorkspace() {
             </div>
           </div>
         ) : (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
             <AlertCircle size={16} className="shrink-0 text-rose-400" />
             <span>{evaluationError}</span>
           </div>
@@ -392,14 +392,14 @@ export function EssayWorkspace() {
       {viewMode === "write" && (
         <div className="space-y-4">
           {/* BANNER DE ESCOLHA / TROCA DE TEMA */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-violet-950/60 via-slate-900/80 to-indigo-950/60 border border-violet-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-violet-950/20">
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#090d16] border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
             <div className="flex items-start gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-violet-600/20 text-violet-300 border border-violet-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                <Sparkles className="w-5 h-5 text-violet-400" />
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 flex items-center justify-center shrink-0 mt-0.5">
+                <BookOpen className="w-5 h-5 text-indigo-400" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-violet-300 bg-violet-500/10 px-2 py-0.5 rounded-full border border-violet-500/20">
+                  <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
                     Banca {theme.banca} • {theme.subjectArea}
                   </span>
                 </div>
@@ -407,7 +407,7 @@ export function EssayWorkspace() {
                   {theme.title}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Você pode treinar com este tema sugerido ou gerar uma proposta inédita para o seu concurso.
+                  Treine com esta proposta oficial ou selecione um tema inédito direcionado ao seu concurso.
                 </p>
               </div>
             </div>
@@ -416,17 +416,17 @@ export function EssayWorkspace() {
               <button
                 type="button"
                 onClick={() => setIsThemeModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-violet-600/30 transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+                className="px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-sm transition-all active:scale-95 cursor-pointer flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Escolher / Gerar Outro Tema</span>
+                <span>Alterar / Gerar Tema</span>
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <div className="p-3.5 rounded-xl bg-violet-600/15 border-2 border-violet-500/50 flex items-center justify-between gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-[#090d16] border border-slate-800/80">
+            <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-300 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/15 text-indigo-300 flex items-center justify-center shrink-0">
                   <PenTool size={18} />
                 </div>
                 <div>

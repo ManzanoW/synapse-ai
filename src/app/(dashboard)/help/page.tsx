@@ -27,6 +27,7 @@ import {
   RefreshCw,
   Wrench,
   Check,
+  LifeBuoy,
 } from 'lucide-react';
 import { triggerHaptic } from '@/lib/sensory/haptics';
 import { PwaInstallModal } from '@/components/landing/PwaInstallModal';
@@ -193,22 +194,16 @@ export default function HelpPage() {
         </div>
       </div>
 
-      {/* 🚀 HERO BANNER - CENTRO DE AJUDA */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-950/80 via-slate-900/90 to-slate-950 border border-indigo-500/30 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl">
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 space-y-4 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
-            <Sparkles size={13} className="text-indigo-400" />
-            <span>Suporte & Boas-Vindas</span>
+      {/* HERO BANNER - CENTRO DE AJUDA */}
+      <div className="relative overflow-hidden rounded-2xl bg-[#090d16] border border-slate-800/80 p-6 sm:p-8 shadow-xl">
+        <div className="relative z-10 space-y-3 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-semibold">
+            <LifeBuoy size={13} className="text-indigo-400" />
+            <span>Central de Suporte</span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-            Como podemos descomplicar seu{' '}
-            <span className="bg-linear-to-r from-indigo-400 via-indigo-300 to-violet-400 bg-clip-text text-transparent">
-              estudo hoje?
-            </span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight">
+            Como podemos ajudar nos seus estudos hoje?
           </h1>
 
           <p className="text-slate-300 text-sm leading-relaxed">
@@ -397,15 +392,15 @@ export default function HelpPage() {
       {/* 📱 CARD PWA & 🛠️ AUTO-REPARO DE CACHE */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Card 1: Instalar no Celular */}
-        <div className="p-5 rounded-3xl bg-linear-to-br from-indigo-950/40 via-[#070b14] to-slate-900 border border-indigo-500/30 flex flex-col justify-between space-y-4 shadow-sm">
+        <div className="p-5 rounded-2xl bg-[#090d16] border border-slate-800/80 flex flex-col justify-between space-y-4 shadow-sm">
           <div className="flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0">
               <Smartphone size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-white">Instalar Synapse no Celular</h3>
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
                   PWA
                 </span>
               </div>
@@ -420,7 +415,7 @@ export default function HelpPage() {
               triggerHaptic('medium');
               setIsPwaModalOpen(true);
             }}
-            className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer"
+            className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 cursor-pointer"
           >
             <Smartphone size={14} />
             <span>Ver Como Instalar (Passo a Passo)</span>
@@ -428,9 +423,9 @@ export default function HelpPage() {
         </div>
 
         {/* Card 2: Auto-Reparo & Limpeza de Cache Local */}
-        <div className="p-5 rounded-3xl bg-linear-to-br from-slate-900/80 via-[#070b14] to-slate-950 border border-slate-800 flex flex-col justify-between space-y-4 shadow-sm">
+        <div className="p-5 rounded-2xl bg-[#090d16] border border-slate-800/80 flex flex-col justify-between space-y-4 shadow-sm">
           <div className="flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0">
               <Wrench size={20} />
             </div>
             <div>
@@ -444,7 +439,7 @@ export default function HelpPage() {
             type="button"
             onClick={handleRepairCache}
             disabled={isRepairing}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-50"
+            className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-50"
           >
             {isRepairing ? (
               <>
@@ -468,8 +463,8 @@ export default function HelpPage() {
 
       <PwaInstallModal isOpen={isPwaModalOpen} onClose={() => setIsPwaModalOpen(false)} />
 
-      {/* ✉️ BANNER DE CONTATO/SUPORTE DEDICADO */}
-      <div className="p-6 bg-linear-to-r from-slate-900/90 via-slate-950 to-indigo-950/40 border border-slate-800/80 rounded-3xl backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* BANNER DE CONTATO/SUPORTE DEDICADO */}
+      <div className="p-6 bg-[#090d16] border border-slate-800/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
             <MessageSquare size={22} />

@@ -100,15 +100,12 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {/* 🚀 HERO CONTAINER - PERFIL PREMIUM */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-50/80 via-white to-purple-50/50 dark:from-indigo-950/80 dark:via-slate-900/90 dark:to-slate-950 border border-slate-200/90 dark:border-indigo-500/30 p-6 sm:p-8 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-violet-500/10 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-
+      {/* HERO CONTAINER - PERFIL EXECUTIVO */}
+      <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#090d16] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-8 shadow-xs dark:shadow-xl">
         <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
-          {/* Avatar com efeito Ring */}
+          {/* Avatar */}
           <div className="relative shrink-0">
-            <div className="absolute -inset-1 bg-linear-to-r from-indigo-500 to-purple-500 rounded-full blur-xs opacity-70" />
+            <div className="absolute -inset-0.5 bg-linear-to-r from-indigo-500 to-cyan-500 rounded-full opacity-60" />
             {dbUser?.image ? (
               <Image
                 src={dbUser.image}

@@ -130,14 +130,14 @@ export function PricingView({
       {/* 🚀 HERO HEADER                                             */}
       {/* ========================================================== */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-linear-to-r dark:from-indigo-500/15 dark:via-purple-500/15 dark:to-pink-500/15 dark:border-indigo-500/30 dark:text-indigo-300 text-xs font-semibold backdrop-blur-md shadow-xs">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:border-indigo-500/25 dark:text-indigo-300 text-xs font-semibold">
           <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400" />
-          <span>Acelere sua aprovação no concurso dos seus sonhos</span>
+          <span>Preparação de alto rendimento para concursos</span>
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-          Estude com IA de ponta,{" "}
-          <span className="bg-linear-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+          Estude com precisão de edital,{" "}
+          <span className="bg-linear-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent">
             sem limites e sem distrações.
           </span>
         </h1>
@@ -205,11 +205,11 @@ export function PricingView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
         {/* CARD PLANO GRATUITO */}
         <div
-          className={`relative rounded-3xl bg-white dark:bg-slate-900/60 border ${
+          className={`relative rounded-2xl bg-white dark:bg-[#090d16] border ${
             currentTier === "FREE" && !isUnlimited
               ? "border-slate-300 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-lg"
-              : "border-slate-200 dark:border-slate-800 shadow-md shadow-slate-100/80 dark:shadow-none"
-          } p-6 flex flex-col justify-between backdrop-blur-xl transition-all hover:border-slate-300 dark:hover:border-slate-700`}
+              : "border-slate-200 dark:border-slate-800/80 shadow-md shadow-slate-100/80 dark:shadow-none"
+          } p-6 flex flex-col justify-between transition-all hover:border-slate-300 dark:hover:border-slate-700`}
         >
           <div className="space-y-5">
             <div className="space-y-2">
@@ -274,9 +274,9 @@ export function PricingView({
         </div>
 
         {/* CARD PLANO SYNAPSE PRO */}
-        <div className="relative rounded-3xl bg-linear-to-b from-indigo-50/90 via-white to-purple-50/70 border-2 border-indigo-600 dark:from-indigo-950/70 dark:via-slate-900/90 dark:to-purple-950/70 dark:border-indigo-500/50 p-6 flex flex-col justify-between backdrop-blur-2xl shadow-2xl shadow-indigo-200/50 dark:shadow-indigo-950/60 transition-all hover:border-indigo-500">
+        <div className="relative rounded-2xl bg-white border-2 border-indigo-600 dark:bg-[#090d16] dark:border-indigo-500/60 p-6 flex flex-col justify-between shadow-2xl shadow-indigo-200/40 dark:shadow-indigo-950/50 transition-all hover:border-indigo-500">
           {/* Badge de Destaque */}
-          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-linear-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-black tracking-wide uppercase shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 whitespace-nowrap">
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-black tracking-wide uppercase shadow-lg shadow-indigo-600/25 flex items-center gap-1.5 whitespace-nowrap">
             <Crown size={12} className="fill-white" />
             <span>Mais Escolhido • Copiloto Ativo</span>
           </div>
@@ -349,10 +349,10 @@ export function PricingView({
                   setModalTargetTier("PREMIUM");
                   setIsModalOpen(true);
                 }}
-                className="w-full py-3.5 px-4 bg-linear-to-r from-indigo-600 via-indigo-700 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white text-xs sm:text-sm font-extrabold rounded-2xl shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer hover:scale-[1.02]"
+                className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-extrabold rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Sparkles size={16} className="fill-white" />
-                <span>Assinar Synapse Pro 🚀</span>
+                <span>Assinar Synapse Pro</span>
                 <ArrowRight size={16} />
               </button>
             )}
@@ -372,9 +372,9 @@ export function PricingView({
         </div>
 
         {/* CARD PLANO SYNAPSE ELITE 👑 (PILOTO AUTOMÁTICO & TRILHAS PROFUNDAS) */}
-        <div className="relative rounded-3xl bg-linear-to-b from-amber-50/95 via-white to-orange-50/70 border-2 border-amber-500 dark:from-amber-950/50 dark:via-slate-900/95 dark:to-orange-950/40 dark:border-amber-500/60 p-6 flex flex-col justify-between backdrop-blur-2xl shadow-2xl shadow-amber-200/50 dark:shadow-amber-950/50 transition-all hover:border-amber-400">
+        <div className="relative rounded-2xl bg-white border-2 border-amber-500 dark:bg-[#090d16] dark:border-amber-500/60 p-6 flex flex-col justify-between shadow-2xl shadow-amber-200/40 dark:shadow-amber-950/40 transition-all hover:border-amber-400">
           {/* Badge de Destaque Elite */}
-          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-linear-to-r from-amber-500 to-orange-500 text-slate-950 text-[10px] font-black tracking-wide uppercase shadow-lg shadow-amber-500/30 flex items-center gap-1.5 whitespace-nowrap">
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-lg bg-amber-500 text-slate-950 text-[10px] font-black tracking-wide uppercase shadow-lg shadow-amber-500/25 flex items-center gap-1.5 whitespace-nowrap">
             <Crown size={12} className="fill-slate-950" />
             <span>Substitui Cursinhos • Piloto Automático</span>
           </div>
@@ -502,7 +502,7 @@ export function PricingView({
               name: "Camila Ribeiro",
               role: "1º Lugar Técnico Judiciário (TRT-15)",
               avatar: "CR",
-              color: "from-purple-600 to-pink-600",
+              color: "from-indigo-600 to-cyan-600",
               quote: "As Trilhas Guiadas do Synapse Elite substituíram PDFs de 120 páginas por teorias diretas ao ponto, com lei seca grifada e tabelas das pegadinhas da banca. Economizou meses!",
               highlight: "89% de acertos na prova objetiva",
             },
@@ -561,7 +561,7 @@ export function PricingView({
           </p>
         </div>
 
-        <div className="overflow-x-auto rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 shadow-xl shadow-slate-200/50 dark:shadow-none backdrop-blur-xl">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] shadow-xl shadow-slate-200/50 dark:shadow-none">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60">
@@ -735,7 +735,7 @@ export function PricingView({
       {/* ========================================================== */}
       {/* 🛡️ BOX DE GARANTIA BLINDADA DE 7 DIAS                       */}
       {/* ========================================================== */}
-      <div className="max-w-4xl mx-auto rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-indigo-500/10 dark:from-amber-500/10 dark:via-slate-900/90 dark:to-indigo-500/10 border-2 border-amber-400/50 dark:border-amber-500/30 p-6 sm:p-8 backdrop-blur-xl shadow-xl shadow-amber-500/5 relative overflow-hidden">
+      <div className="max-w-4xl mx-auto rounded-2xl bg-white dark:bg-[#090d16] border border-amber-400/50 dark:border-amber-500/30 p-6 sm:p-8 shadow-xl shadow-amber-500/5 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shrink-0 shadow-lg shadow-amber-500/30">
             <ShieldCheck size={40} strokeWidth={2.2} />

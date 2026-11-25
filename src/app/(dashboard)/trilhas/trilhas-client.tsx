@@ -1372,7 +1372,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
       )}
 
       {/* CABEÇALHO ENXUTO DO MÓDULO */}
-      <div className="p-5 sm:p-7 rounded-3xl bg-slate-900/90 border border-slate-800/80 shadow-xl space-y-5">
+      <div className="p-5 sm:p-7 rounded-2xl bg-[#090d16] border border-slate-800/80 shadow-xl space-y-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
@@ -2053,7 +2053,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
             ESTADO EM BRANCO (SEM TRILHA ATIVA): CTA PARA CRIAR COM IA
            ========================================================= */}
         {activeTab === "trilhas" && !trail && (
-          <div className="p-8 sm:p-14 rounded-3xl bg-gradient-to-b from-slate-900/80 via-slate-950 to-slate-950 border border-slate-800 text-center flex flex-col items-center justify-center max-w-3xl mx-auto space-y-6 shadow-2xl">
+          <div className="p-8 sm:p-12 rounded-2xl bg-[#090d16] border border-slate-800/80 text-center flex flex-col items-center justify-center max-w-3xl mx-auto space-y-6 shadow-xl">
             <div className="w-16 h-16 rounded-2xl bg-indigo-600/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-xl shadow-indigo-600/10">
               <Compass className="w-8 h-8" />
             </div>
