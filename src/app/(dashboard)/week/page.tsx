@@ -159,6 +159,7 @@ export default function WeekPage() {
 
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
   const weekSpotlight = useSpotlight("synapse_spotlight_week_v1");
+  const [manualSpotlightOpen, setManualSpotlightOpen] = useState(false);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -819,7 +820,14 @@ export default function WeekPage() {
 
           {/* Barra Superior Limpa: Ler Aulas + Atrasou? Reorganizar + Ajustes */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-            <SpotlightTriggerButton onClick={weekSpotlight.toggle} label="Como Funciona?" accentColor="indigo" />
+            <SpotlightTriggerButton
+              onClick={() => {
+                setManualSpotlightOpen(!manualSpotlightOpen);
+                weekSpotlight.toggle();
+              }}
+              label="Como Funciona?"
+              accentColor="indigo"
+            />
             <Link
               href="/calendar"
               title="Abrir o Calendário Mensal de Revisões"
@@ -1045,13 +1053,16 @@ export default function WeekPage() {
         {/* GUIA PASSO A PASSO / TOUR DO CRONOGRAMA */}
         <PageSpotlightBanner
           storageKey="synapse_spotlight_week_v1"
-          externalIsOpen={weekSpotlight.isOpen}
-          onClose={weekSpotlight.dismiss}
-          badgeText="📅 Guia do Cronograma & Ciclo"
-          title="Como funciona o seu Cronograma Inteligente em 3 passos:"
-          description="Sua rotina foi desenhada com base nas horas disponíveis e no peso das matérias da sua banca:"
+          externalIsOpen={weekSpotlight.isOpen && (hasSubjects || manualSpotlightOpen)}
+          onClose={() => {
+            setManualSpotlightOpen(false);
+            weekSpotlight.dismiss();
+          }}
+          badgeText="Guia do Cronograma & Ciclo"
+          title="Como funciona o seu Planejamento Semanal:"
+          description="Sua rotina é calculada com base nas horas disponíveis e no peso das matérias da sua banca:"
           accentColor="indigo"
-          primaryActionLabel="Entendi, ver meus horários!"
+          primaryActionLabel="Entendido"
           steps={[
             {
               icon: <CalendarDays className="w-4 h-4" />,
@@ -1069,15 +1080,16 @@ export default function WeekPage() {
             },
             {
               icon: <LifeBuoy className="w-4 h-4" />,
-              title: "3. Reorganize com Inteligência Artificial",
+              title: "3. Reorganização Adaptativa",
               description:
-                "Atrasou matérias ou errou muitas questões? Use o botão 'Atrasou? Reorganizar' para a IA redistribuir a carga automaticamente.",
-              tag: "IA Adaptativa",
+                "Atrasou matérias ou acumulou erros? Use o botão 'Atrasou? Reorganizar' para redistribuir a carga horária automaticamente.",
+              tag: "Adaptativo",
             },
           ]}
         />
-        {/* Mode Selector & Meta Bar */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-2 bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/60 rounded-2xl backdrop-blur-xl shadow-xs dark:shadow-xl">
+        {/* Mode Selector & Meta Bar - Exibida apenas quando há disciplinas cadastradas */}
+        {!loading && hasSubjects && (
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-2 bg-white dark:bg-[#0c121e]/90 border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-xs dark:shadow-xl">
           <div className="inline-flex items-center bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80 w-full md:w-auto">
             <button
               onClick={() => handleToggleMode("WEEKLY")}
@@ -1168,6 +1180,7 @@ export default function WeekPage() {
             </button>
           </div>
         </div>
+        )}
 
         {/* ================= BANNER PREDITIVO DE REBALANCEAMENTO ================= */}
         {!loading && hasSubjects && (
@@ -1196,7 +1209,7 @@ export default function WeekPage() {
         ) : !hasSubjects ? (
           <EditalEmptyState
             title="Seu Planejamento precisa de um Edital"
-            description="Cadastre as disciplinas do seu concurso para que a IA organize automaticamente seu planejamento semanal e ciclo de estudos adaptativo."
+            description="Cadastre as disciplinas do seu concurso para organizar seu planejamento semanal e ciclo de estudos adaptativo."
             onSuccess={() => {
               setLoading(true);
               loadWeekData();

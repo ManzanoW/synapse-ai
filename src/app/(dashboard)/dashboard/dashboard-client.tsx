@@ -1226,9 +1226,9 @@ export default function DashboardClient({
             />
           )}
 
-        {/* ================= 2. BANNER RESUMO DA JORNADA ================= */}
-        {visibleCards.heroJourney && (
-          <section className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+        {/* ================= 2. BANNER RESUMO DA JORNADA (Exibido apenas quando há matérias cadastradas) ================= */}
+        {visibleCards.heroJourney && (isLoading || hasEditalSubjects) && (
+          <section className="relative overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0c121e]/90 p-5 sm:p-6 shadow-xs dark:shadow-xl">
             <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
 
           {/* LAYOUT MOBILE */}
@@ -1884,8 +1884,8 @@ export default function DashboardClient({
             </div>
 
             {/* MINHAS MATÉRIAS (MODO PRÁTICA) */}
-            {visibleCards.subjects && (
-              <div className="space-y-4 rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl relative">
+            {visibleCards.subjects && (isLoading || hasEditalSubjects) && (
+              <div className="space-y-4 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0c121e]/90 p-5 sm:p-6 shadow-xs dark:shadow-xl relative">
                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -1925,11 +1925,11 @@ export default function DashboardClient({
               <DailyQuestsPanel />
 
               {/* SALA DE FOCO ZEN */}
-              <div className="relative overflow-hidden rounded-3xl border border-indigo-200 dark:border-indigo-500/20 bg-linear-to-br from-indigo-50/70 via-white to-purple-50/60 dark:from-indigo-950/40 dark:via-slate-950/70 dark:to-purple-950/30 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl group hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all duration-300">
+              <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0c121e]/90 p-6 shadow-xs dark:shadow-xl group hover:border-indigo-300 dark:hover:border-slate-700 transition-all duration-300">
                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/20 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                       <Headphones size={20} className="text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <div>
@@ -1943,9 +1943,9 @@ export default function DashboardClient({
                   </div>
                   <button
                     onClick={() => setIsZenModeOpen(true)}
-                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200 dark:bg-white/[0.03] px-2.5 py-1 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300"
+                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/80 hover:bg-slate-200 dark:bg-slate-900 px-2.5 py-1 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300"
                   >
-                    <Maximize2 size={11} className="text-violet-600 dark:text-violet-400" />
+                    <Maximize2 size={11} className="text-indigo-600 dark:text-indigo-400" />
                     <span>Modo Zen</span>
                   </button>
                 </div>
@@ -1954,7 +1954,7 @@ export default function DashboardClient({
                 </p>
                 <Link
                   href={getHref("/study-room")}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600/90 via-purple-600/90 to-indigo-600/90 hover:from-indigo-500 hover:to-purple-500 py-3 px-4 text-xs font-bold text-white shadow-md shadow-indigo-600/20 active:scale-98 transition-all group/btn cursor-pointer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 px-4 text-xs font-semibold text-white shadow-sm active:scale-98 transition-all group/btn cursor-pointer"
                 >
                   <Headphones size={15} />
                   <span>Entrar na Sala de Foco</span>
@@ -1968,7 +1968,7 @@ export default function DashboardClient({
           <div className="space-y-8">
             {/* ================= CAPÍTULO 01: ROTINA DE HOJE & EXECUÇÃO ================= */}
             <section className="space-y-4">
-              {dashboardMode !== "minimal" && (
+              {dashboardMode !== "minimal" && (isLoading || hasEditalSubjects) && (
                 <div className="hidden md:flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-2.5">
                   <div className="flex items-center gap-2.5">
                     <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/10 text-xs font-mono font-black text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
@@ -1985,8 +1985,8 @@ export default function DashboardClient({
               )}
 
               {/* GRADE DE MATÉRIAS (4 COLUNAS EM UMA ÚNICA LINHA NO DESKTOP) */}
-              {visibleCards.subjects && (
-                <div className="space-y-4 rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl relative">
+              {visibleCards.subjects && (isLoading || hasEditalSubjects) && (
+                <div className="space-y-4 rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#0c121e]/90 p-5 sm:p-6 shadow-xs dark:shadow-xl relative">
                   <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
                   
                   <div className="flex flex-wrap items-center justify-between gap-2">

@@ -1950,10 +1950,10 @@ export default function QuestoesPage() {
                 type="button"
                 onClick={() => setIsScannerModalOpen(true)}
                 className="w-full sm:w-auto justify-center bg-cyan-500/15 border border-cyan-500/40 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-cyan-500/10 active:scale-95"
-                title="Envie uma foto de qualquer questão de prova para a IA resolver passo a passo"
+                title="Envie uma foto de qualquer questão de prova para resolução passo a passo"
               >
                 <Camera size={15} className="text-cyan-400" />
-                <span>Ler Questão por Foto 📸</span>
+                <span>Ler Questão por Foto</span>
               </button>
 
               <button
@@ -1963,9 +1963,9 @@ export default function QuestoesPage() {
                   loadErrorNotebookData();
                   setIsTimedLaunchModalOpen(true);
                 }}
-                className="w-full sm:w-auto justify-center bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-violet-600/10 active:scale-95 hover:shadow-violet-600/20"
+                className="w-full sm:w-auto justify-center bg-indigo-600/20 border border-indigo-500/40 hover:bg-indigo-600/30 text-indigo-200 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-indigo-600/10 active:scale-95"
               >
-                <Timer size={15} className="text-violet-400" />
+                <Timer size={15} className="text-indigo-400" />
                 <span>Simulado com Tempo</span>
               </button>
             </div>
@@ -1979,32 +1979,32 @@ export default function QuestoesPage() {
             storageKey="synapse_spotlight_questions_v1"
             externalIsOpen={questionsSpotlight.isOpen}
             onClose={questionsSpotlight.dismiss}
-            badgeText="🎯 Guia de Simulados & Questões"
-            title="Como treinar para gabaritar em 3 passos:"
-            description="O Banco de Provas e Simulados adapta as questões ao nível exato exigido pela banca do seu concurso:"
-            accentColor="violet"
-            primaryActionLabel="Entendi, vamos treinar!"
+            badgeText="Guia de Simulados & Questões"
+            title="Como funciona o Banco de Provas e Simulados:"
+            description="Treine com questões calibradas ao estilo e incidência da banca examinadora do seu concurso:"
+            accentColor="indigo"
+            primaryActionLabel="Entendido"
             steps={[
               {
                 icon: <Target className="w-4 h-4" />,
                 title: "1. Gere Cadernos por Matéria ou Banca",
                 description:
-                  "Escolha qualquer assunto do seu edital ou faça simulados focados no estilo exato da banca examinadora.",
-                tag: "Foco Total",
+                  "Escolha qualquer assunto do seu edital ou monte simulados focados no perfil exato da banca examinadora.",
+                tag: "Incidência por Banca",
               },
               {
                 icon: <Timer className="w-4 h-4" />,
                 title: "2. Treine com Pressão de Tempo Real",
                 description:
-                  "Ative o modo Simulado com Tempo para monitorar seus minutos por questão e treinar as condições do grande dia.",
+                  "Ative o modo Simulado com Tempo para monitorar seu ritmo por questão e simular as condições oficiais.",
                 tag: "Ritmo de Prova",
               },
               {
                 icon: <Sparkles className="w-4 h-4" />,
-                title: "3. Aprenda com os Erros e Crie Flashcards",
+                title: "3. Diagnóstico e Fixação Ativa",
                 description:
-                  "Cada erro é catalogado no Caderno de Erros e vira flashcard FSRS automático para você nunca mais errar o assunto.",
-                tag: "Anti-Esquecimento",
+                  "Cada erro é catalogado no Caderno de Erros e convertido em cartão FSRS para revisão espaçada.",
+                tag: "Fixação Ativa",
               },
             ]}
           />

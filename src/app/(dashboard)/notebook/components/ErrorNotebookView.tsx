@@ -75,6 +75,7 @@ export function ErrorNotebookView({
   subjects,
 }: ErrorNotebookViewProps) {
   const spotlight = useSpotlight("synapse_spotlight_notebook");
+  const [manualSpotlightOpen, setManualSpotlightOpen] = useState(false);
 
   // Estado de Paginação (lotes de 10 em 10)
   const [questions, setQuestions] = useState<Question[]>(initialItems || []);
@@ -585,57 +586,59 @@ export function ErrorNotebookView({
       {/* SPOTLIGHT DICA DE PRIMEIRO ACESSO */}
       <PageSpotlightBanner
         storageKey="synapse_spotlight_notebook"
-        externalIsOpen={spotlight.isOpen}
-        onClose={spotlight.dismiss}
-        badgeText="🎯 Como Funciona o Caderno de Erros"
-        title="Transforme Questões Erradas na Chave da sua Aprovação"
-        description="Errar durante a preparação é normal e valioso. Aqui, cada questão errada é diagnosticada pelo motivo real para que você treine exatamente onde precisa."
+        externalIsOpen={spotlight.isOpen && (metrics.totalErrors > 0 || manualSpotlightOpen)}
+        onClose={() => {
+          setManualSpotlightOpen(false);
+          spotlight.dismiss();
+        }}
+        badgeText="Guia do Caderno de Erros"
+        title="Como funciona o Diagnóstico e Fixação de Erros:"
+        description="Cada questão errada é classificada pelo motivo real para que você direcione a revisão aos seus pontos cegos:"
         accentColor="emerald"
-        primaryActionLabel="Entendi, vou superar meus erros!"
+        primaryActionLabel="Entendido"
         steps={[
           {
             icon: <HelpCircle size={18} />,
-            title: "1. Descubra o Motivo do Erro",
+            title: "1. Diagnóstico de Lacunas",
             description:
-              "Classifique se errou por Teoria/Matéria Nova, Pegadinha da Banca, Interpretação do Enunciado ou Falta de Tempo.",
+              "Classifique se errou por Lacuna Teórica, Pegadinha da Banca, Interpretação do Enunciado ou Pressão de Tempo.",
             tag: "Diagnóstico",
           },
           {
             icon: <Zap size={18} />,
-            title: "2. Treine com Questões Focadas",
+            title: "2. Fixação Ativa por Assunto",
             description:
-              "Clique em 'Treinar Questões que Errei' para a IA montar um mini-simulado só com as matérias e armadilhas que você errou.",
-            tag: "Remediação Ativa",
+              "Inicie sessões focadas apenas nas matérias e armadilhas recorrentes que você precisa superar.",
+            tag: "Fixação Ativa",
           },
           {
             icon: <CheckCircle2 size={18} />,
-            title: "3. Domine e Zere os Erros",
+            title: "3. Domínio e Consolidação",
             description:
-              "Ao acertar as questões nos treinos, elas sobem de nível e passam para 'Superadas', elevando sua taxa de domínio até os 100%.",
-            tag: "Evolução Real",
+              "Ao acertar as questões nos treinos, elas sobem de nível e passam para 'Superadas', elevando sua taxa de retenção.",
+            tag: "Retenção",
           },
         ]}
       />
 
       {/* 🚀 BANNER PRINCIPAL: PRATICAR QUESTÕES QUE ERREI */}
       {metrics.pendingErrors > 0 && (
-        <div className="relative overflow-hidden p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-rose-950/40 via-purple-950/30 to-slate-900/60 border border-rose-500/30 dark:border-rose-500/20 shadow-xl backdrop-blur-xl">
-          <div className="absolute -right-8 -top-8 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="relative overflow-hidden p-5 sm:p-6 rounded-2xl bg-[#0c121e]/90 border border-slate-800/80 shadow-xl">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1.5 max-w-xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
-                <span>Hora de Superar seus Pontos Fracos</span>
+                <span>Revisão de Pontos Cegos</span>
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 flex-wrap">
                 <span>Você tem</span>
                 <span className="text-rose-400 font-black underline decoration-rose-500 underline-offset-4">
-                  {metrics.pendingErrors} {metrics.pendingErrors === 1 ? "questão errada" : "questões erradas"}
+                  {metrics.pendingErrors} {metrics.pendingErrors === 1 ? "questão pendente" : "questões pendentes"}
                 </span>
-                <span>para revisar</span>
+                <span>para consolidar</span>
               </h3>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Escolha abaixo: você pode refazer exatamente as mesmas questões que errou (grátis) ou pedir para a IA criar novas questões parecidas para testar se você realmente aprendeu.
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                Refaça as questões originais gratuitamente ou gere questões inéditas equivalentes para validar sua retenção.
               </p>
             </div>
 
@@ -644,8 +647,8 @@ export function ErrorNotebookView({
               <button
                 disabled={isGeneratingDirectRevenge || isGeneratingRedemption}
                 onClick={() => handleStartDirectRevenge(5)}
-                className="px-4 py-2.5 sm:py-3 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-950/40 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
-                title="Tente acertar novamente as mesmas questões que você errou antes (sem gastar créditos de IA)"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-300 font-semibold text-xs transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                title="Refazer as mesmas questões erradas anteriormente"
               >
                 {isGeneratingDirectRevenge ? (
                   <>
@@ -655,27 +658,27 @@ export function ErrorNotebookView({
                 ) : (
                   <>
                     <RotateCcw className="w-4 h-4 text-emerald-400" />
-                    <span>Refazer as Mesmas Questões (Grátis)</span>
+                    <span>Refazer Originais (Grátis)</span>
                   </>
                 )}
               </button>
 
-              {/* Botão 2: Treinar Questões Parecidas (IA) */}
+              {/* Botão 2: Treinar Questões Equivalentes */}
               <button
                 disabled={isGeneratingRedemption || isGeneratingDirectRevenge}
                 onClick={() => handleStartRedemption(5)}
-                className="px-4.5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold text-xs sm:text-sm shadow-xl shadow-rose-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
-                title="A IA cria 5 questões novas cobrando o mesmo assunto que você errou"
+                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                title="Gerar 5 questões inéditas cobrando o mesmo tópico"
               >
                 {isGeneratingRedemption ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Criando questões parecidas...</span>
+                    <span>Gerando questões...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 text-amber-200" />
-                    <span>Treinar 5 Questões Parecidas (IA)</span>
+                    <Zap className="w-4 h-4 text-amber-300" />
+                    <span>Treinar 5 Questões Equivalentes</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -684,11 +687,11 @@ export function ErrorNotebookView({
               {/* Botão 3: Revisar nos Flashcards (FSRS) */}
               <Link
                 href="/flashcards"
-                className="px-4 py-2.5 sm:py-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 font-bold text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 cursor-pointer"
-                title="Suas questões erradas viram Flashcards com repetição espaçada automática (FSRS)"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs transition-all active:scale-[0.98] flex items-center gap-2 cursor-pointer"
+                title="Revisar erros em formato de Flashcards FSRS"
               >
                 <Layers className="w-4 h-4 text-indigo-400" />
-                <span>Revisar em Flashcards (FSRS)</span>
+                <span>Flashcards (FSRS)</span>
               </Link>
             </div>
           </div>
@@ -703,7 +706,10 @@ export function ErrorNotebookView({
         onBatchClassify={handleBatchClassify}
         isClassifying={isClassifying}
         onOpenRemediationModal={() => setIsRemediationOpen(true)}
-        onToggleSpotlight={spotlight.toggle}
+        onToggleSpotlight={() => {
+          setManualSpotlightOpen(!manualSpotlightOpen);
+          spotlight.toggle();
+        }}
         onBatchCreateFlashcards={handleBatchCreateFlashcards}
         isCreatingBatchFlashcards={isCreatingBatchFlashcards}
         onStartRedemption={handleStartRedemption}
@@ -711,16 +717,18 @@ export function ErrorNotebookView({
         onOpenExportModal={handleOpenExportModal}
       />
 
-      {/* 2. Barra de Filtros */}
-      <ErrorFiltersBar
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        subjects={subjects}
-        onResetFilters={handleResetFilters}
-        onStartRedemption={handleStartRedemption}
-        isGeneratingRedemption={isGeneratingRedemption}
-        onOpenPrintModal={() => handleOpenExportModal("print")}
-      />
+      {/* 2. Barra de Filtros - Exibida apenas quando há erros catalogados */}
+      {metrics.totalErrors > 0 && (
+        <ErrorFiltersBar
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          subjects={subjects}
+          onResetFilters={handleResetFilters}
+          onStartRedemption={handleStartRedemption}
+          isGeneratingRedemption={isGeneratingRedemption}
+          onOpenPrintModal={() => handleOpenExportModal("print")}
+        />
+      )}
 
       {/* 3. Indicador de Carregamento nos Filtros / Busca */}
       {isFiltering && (
@@ -940,53 +948,53 @@ export function ErrorNotebookView({
 
       {/* 5. Empty State: Nenhum erro registrado ou nenhum match com filtro */}
       {!isFiltering && questions.length === 0 && (
-        <div className="p-12 text-center rounded-3xl bg-slate-900/40 border border-white/10 backdrop-blur-xl space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-xl shadow-violet-500/5">
-            <BookOpenCheck size={32} />
+        <div className="p-8 sm:p-10 text-center rounded-2xl bg-[#0c121e]/90 border border-slate-800/80 shadow-xl space-y-4">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <BookOpenCheck size={24} />
           </div>
 
           {metrics.totalErrors === 0 ? (
             <div className="space-y-6 max-w-xl mx-auto">
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
                   <CheckCircle2 size={13} />
                   <span>Caderno 100% Preparado</span>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  Seu Caderno de Erros está Limpo!
+                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                  Seu Caderno de Erros está Limpo
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-lg mx-auto">
-                  Conforme você resolve simulados no Banco de Provas, as questões que você errar serão automaticamente catalogadas aqui para desarmar pegadinhas e fixar a teoria.
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg mx-auto">
+                  Conforme você resolve simulados no Banco de Provas, as questões que errar serão catalogadas automaticamente aqui para diagnóstico de lacunas e fixação ativa.
                 </p>
               </div>
 
-              {/* 3 Passos do Método de Remediação */}
+              {/* 3 Passos do Método de Fixação */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1.5">
-                  <div className="flex items-center gap-2 text-violet-400 text-xs font-bold">
-                    <span className="w-5 h-5 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-[10px] font-mono">1</span>
-                    <span>Simulado Real</span>
+                <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                  <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold">
+                    <span className="w-5 h-5 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-[10px] font-mono">1</span>
+                    <span>Simulado Oficial</span>
                   </div>
                   <p className="text-[11px] text-slate-400 leading-snug">
                     Resolva questões das principais bancas com seu edital ativo.
                   </p>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1.5">
+                <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
                   <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-[10px] font-mono">2</span>
-                    <span>Diagnóstico IA</span>
+                    <span className="w-5 h-5 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-[10px] font-mono">2</span>
+                    <span>Diagnóstico de Lacunas</span>
                   </div>
                   <p className="text-[11px] text-slate-400 leading-snug">
-                    A IA classifica a causa-raiz: pegadinha, lacuna teórica ou tempo.
+                    Identificação da causa-raiz: pegadinha de banca, lacuna teórica ou tempo.
                   </p>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1.5">
+                <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
                   <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-[10px] font-mono">3</span>
-                    <span>Remediação</span>
+                    <span className="w-5 h-5 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[10px] font-mono">3</span>
+                    <span>Fixação Ativa</span>
                   </div>
                   <p className="text-[11px] text-slate-400 leading-snug">
-                    Treine com micro-questões de fixação inéditas e supere seus erros.
+                    Treine com questões equivalentes e cartões FSRS até superar o tópico.
                   </p>
                 </div>
               </div>
@@ -994,7 +1002,7 @@ export function ErrorNotebookView({
               <div className="pt-2">
                 <Link
                   href="/questions"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-rose-600 hover:from-violet-500 hover:to-rose-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-violet-600/30 border border-violet-400/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all cursor-pointer active:scale-[0.98]"
                 >
                   <FileStack size={16} />
                   <span>Iniciar Simulado no Banco de Provas</span>
