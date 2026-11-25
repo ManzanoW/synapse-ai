@@ -386,16 +386,13 @@ export function QuestionScannerModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl max-h-[92dvh] flex flex-col rounded-3xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-2xl text-slate-100 overflow-hidden my-auto"
+        className="relative w-full max-w-3xl max-h-[92dvh] flex flex-col rounded-2xl border border-slate-800/80 bg-[#090d16] shadow-2xl text-slate-100 overflow-hidden my-auto"
       >
-        {/* Glow de fundo */}
-        <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-violet-600/20 blur-[100px] pointer-events-none" />
-        <div className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-cyan-600/15 blur-[100px] pointer-events-none" />
 
         {/* CABEÇALHO */}
-        <div className="relative flex items-center justify-between px-5 py-4 border-b border-white/[0.08] bg-slate-900/40">
+        <div className="relative flex items-center justify-between px-5 py-4 border-b border-white/[0.08] bg-[#030712]/60">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-linear-to-br from-violet-500/20 to-cyan-500/20 border border-violet-500/30 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+            <div className="p-2.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400">
               <Camera size={20} />
             </div>
             <div>
@@ -638,7 +635,7 @@ export function QuestionScannerModal({
                     className={`flex-1 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wide transition-all shadow-lg flex items-center justify-center gap-2 ${
                       validationResult !== null && !validationResult.isValid
                         ? "bg-slate-800/80 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-60"
-                        : "bg-linear-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white shadow-violet-600/30 active:scale-95 cursor-pointer"
+                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/25 active:scale-95 cursor-pointer"
                     }`}
                     title={
                       validationResult !== null && !validationResult.isValid
@@ -909,7 +906,7 @@ export function QuestionScannerModal({
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                     isAddedToQuiz
                       ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
-                      : "bg-linear-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white shadow-md shadow-violet-600/20 active:scale-95 cursor-pointer"
+                      : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-95 cursor-pointer"
                   }`}
                 >
                   {isAddedToQuiz ? <Check size={13} /> : <Plus size={13} />}

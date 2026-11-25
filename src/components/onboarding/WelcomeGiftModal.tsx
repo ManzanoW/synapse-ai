@@ -106,11 +106,8 @@ export function WelcomeGiftModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           transition={{ type: "spring", stiffness: 350, damping: 28 }}
-          className="relative w-full max-w-md overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-slate-900 via-[#0a0f1d] to-[#050811] p-6 sm:p-8 text-center shadow-2xl shadow-indigo-950/50"
+          className="relative w-full max-w-md overflow-hidden rounded-2xl border border-indigo-500/30 bg-[#090d16] p-6 sm:p-8 text-center shadow-2xl shadow-indigo-950/50"
         >
-          {/* Efeitos de Glow no fundo */}
-          <div className="absolute -top-24 -left-24 w-56 h-56 rounded-full bg-indigo-600/20 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-56 h-56 rounded-full bg-violet-600/20 blur-3xl pointer-events-none" />
 
           {/* Botão fechar sutil */}
           <button
@@ -124,11 +121,10 @@ export function WelcomeGiftModal({
 
           {/* Ícone de Presente Animado */}
           <div className="relative mx-auto mb-5 flex h-20 w-20 items-center justify-center">
-            <div className="absolute inset-0 rounded-3xl bg-linear-to-tr from-indigo-500 to-violet-500 blur-lg opacity-40 animate-pulse" />
             <motion.div
               animate={{ rotate: [0, -6, 6, -3, 3, 0], scale: [1, 1.05, 1] }}
               transition={{ repeat: Infinity, duration: 3, repeatDelay: 1 }}
-              className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-tr from-indigo-600 via-violet-600 to-indigo-500 border border-indigo-400/30 text-white shadow-xl shadow-indigo-600/30"
+              className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-600 border border-indigo-400/30 text-white shadow-xl shadow-indigo-600/30"
             >
               <Gift size={38} className="drop-shadow-md" />
             </motion.div>
