@@ -362,18 +362,18 @@ export function SimuladoGenerationModal({
               {/* Header da Barra: Etapa atual e Porcentagem */}
               <div className="flex items-center justify-between text-xs font-mono">
                 <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
-                  <Cpu size={12} className="text-violet-400" />
+                  <Cpu size={12} className="text-indigo-400" />
                   <span>Status da Matriz</span>
                 </span>
-                <span className="text-sm font-black text-transparent bg-clip-text bg-linear-to-r from-violet-300 via-fuchsia-300 to-indigo-200">
+                <span className="text-sm font-black text-indigo-300">
                   {displayValue}%
                 </span>
               </div>
 
-              {/* Trilho da Barra com Gradiente Neon e Glow */}
-              <div className="w-full bg-slate-900/90 rounded-full h-2.5 p-0.5 overflow-hidden border border-violet-500/30 shadow-inner">
+              {/* Trilho da Barra */}
+              <div className="w-full bg-slate-900/90 rounded-full h-2.5 p-0.5 overflow-hidden border border-indigo-500/30 shadow-inner">
                 <motion.div
-                  className="h-full rounded-full bg-linear-to-r from-violet-600 via-fuchsia-500 to-indigo-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]"
+                  className="h-full rounded-full bg-linear-to-r from-indigo-600 to-cyan-500 shadow-[0_0_16px_rgba(99,102,241,0.4)]"
                   style={{ width: `${displayValue}%` }}
                   transition={{ ease: "easeOut" }}
                 />
@@ -404,7 +404,7 @@ export function SimuladoGenerationModal({
                   transition={{ duration: 0.22, ease: "easeOut" }}
                   className="space-y-1 text-center"
                 >
-                  <p className="text-xs font-bold text-violet-200 leading-snug tracking-wide">
+                  <p className="text-xs font-bold text-indigo-200 leading-snug tracking-wide">
                     {currentPhase.text}
                   </p>
                   <p className="text-[11px] text-slate-400 leading-relaxed max-w-sm">
@@ -421,7 +421,7 @@ export function SimuladoGenerationModal({
               <button
                 type="button"
                 onClick={() => triggerCompletion()}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-950/60 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-950/50 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
               >
                 <span>Acessar Simulado Agora</span>
                 <ArrowRight size={14} />
@@ -456,7 +456,7 @@ export function SimuladoGenerationModal({
                   <Link
                     href="/pricing"
                     onClick={onClose}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white text-xs font-black rounded-xl shadow-lg shadow-violet-950/60 flex items-center justify-center gap-2 transition-all cursor-pointer group"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl shadow-lg shadow-indigo-950/50 flex items-center justify-center gap-2 transition-all cursor-pointer group"
                   >
                     <Crown
                       size={14}

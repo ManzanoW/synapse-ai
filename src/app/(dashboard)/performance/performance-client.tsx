@@ -706,7 +706,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
             )}
 
             {/* PLANO DE AÇÃO DE MAIOR IMPACTO HOJE (ROI DE APROVAÇÃO) */}
-            <div className="bg-gradient-to-r from-indigo-500/[0.07] via-violet-500/[0.05] to-cyan-500/[0.07] border border-indigo-500/20 dark:border-indigo-500/25 rounded-3xl p-5 backdrop-blur-xl space-y-3.5 shadow-xs">
+            <div className="bg-white dark:bg-[#090d16] border border-indigo-500/20 dark:border-indigo-500/25 rounded-2xl p-5 space-y-3.5 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400">
@@ -935,7 +935,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
 
 
                 {/* SUGESTÕES DE AJUSTE DO ALVO (ADAPTIVE REBALANCER) */}
-                <div className="relative overflow-hidden rounded-3xl bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 p-6 backdrop-blur-xl space-y-4 shadow-sm dark:shadow-2xl">
+                <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#090d16] border border-slate-200/80 dark:border-slate-800/80 p-6 space-y-4 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-white/10 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400">
@@ -1178,7 +1178,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
               >
                 {/* PONTOS FRACOS (< 60% COM PELO MENOS 3 QUESTÕES) - CENTRAL DE RESGATE 4-EM-1 */}
                 {data.weakTopics && data.weakTopics.length > 0 && (
-                  <div className="bg-white/80 dark:bg-slate-900/60 border border-rose-200/80 dark:border-rose-500/20 rounded-3xl p-6 backdrop-blur-xl space-y-4 shadow-sm dark:shadow-2xl">
+                  <div className="bg-white dark:bg-[#090d16] border border-rose-200/80 dark:border-rose-500/25 rounded-2xl p-6 space-y-4 shadow-xs">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 dark:border-white/10 pb-3">
                       <div className="flex items-center gap-2">
                         <AlertCircle size={18} className="text-rose-600 dark:text-rose-400" />
@@ -1287,7 +1287,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
 
                 {/* APROVEITAMENTO POR DISCIPLINA COM BUSCA, FILTROS, ORDENAÇÃO E DUPLA BARRA (ACURÁCIA + COBERTURA) */}
                 {data.subjectStats && data.subjectStats.length > 0 && (
-                  <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 md:p-7 backdrop-blur-xl space-y-5 shadow-sm dark:shadow-2xl">
+                  <div className="bg-white dark:bg-[#090d16] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 md:p-7 space-y-5 shadow-xs">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-slate-200/80 dark:border-white/10">
                       <div className="flex items-center gap-2">
                         <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
@@ -1554,7 +1554,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
               >
                 {/* PIPELINE DE MATURIDADE DA MEMÓRIA */}
                 {fsrsMaturity && fsrsMaturity.totalCards > 0 && (
-                  <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 backdrop-blur-xl shadow-sm dark:shadow-2xl space-y-4">
+                  <div className="bg-white dark:bg-[#090d16] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 dark:border-white/10 pb-3">
                       <div className="flex items-center gap-2">
                         <Layers size={18} className="text-cyan-600 dark:text-cyan-400" />
@@ -1630,7 +1630,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
 
                 {/* CARGA DE REVISÃO E QUALIDADE DE MEMORIZAÇÃO */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                  <div className="lg:col-span-7 bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 md:p-7 backdrop-blur-xl shadow-sm dark:shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+                  <div className="lg:col-span-7 bg-white dark:bg-[#090d16] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 md:p-7 shadow-xs flex flex-col justify-between space-y-6 relative overflow-hidden">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
@@ -1728,7 +1728,7 @@ export default function AnalyticsClient({ user: _user }: AnalyticsClientProps) {
                     </div>
                   </div>
 
-                  <div className="lg:col-span-5 bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 md:p-7 backdrop-blur-xl shadow-sm dark:shadow-2xl flex flex-col justify-between space-y-6 relative overflow-hidden">
+                  <div className="lg:col-span-5 bg-white dark:bg-[#090d16] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 md:p-7 shadow-xs flex flex-col justify-between space-y-6 relative overflow-hidden">
                     <div>
                       <div className="flex items-center justify-between">
                         <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">

@@ -1552,7 +1552,7 @@ export default function DashboardClient({
               {/* CHANCE DE APROVAÇÃO (PREDIÇÃO NEURAL) */}
               <ApprovalOddsCard initialData={initialApprovalOdds} />
 
-              <div className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 shadow-xs">
                 <div className="mb-4 flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                     Estatísticas Chave
@@ -1636,7 +1636,7 @@ export default function DashboardClient({
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+              <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#090d16] shadow-xs">
                 <DomainRadarChart subjects={subjects} isLoading={isLoading} />
               </div>
             </div>
@@ -1695,7 +1695,7 @@ export default function DashboardClient({
             {/* HUBS DE AÇÃO IMEDIATA: QUESTÕES & FLASHCARDS (GRID 2 COLS) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* CARD: TREINO DE QUESTÕES & SIMULADOS */}
-              <div className="relative overflow-hidden rounded-3xl border border-indigo-200/90 dark:border-indigo-500/30 bg-white dark:bg-slate-950/60 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+              <div className="relative overflow-hidden rounded-2xl border border-indigo-200/90 dark:border-indigo-500/30 bg-white dark:bg-[#090d16] p-6 shadow-xs">
                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -1806,7 +1806,7 @@ export default function DashboardClient({
               </div>
 
               {/* CARD: CONSOLIDAÇÃO DE CARTÕES */}
-              <div className="relative overflow-hidden rounded-3xl border border-amber-200/90 dark:border-amber-500/30 bg-white dark:bg-slate-950/60 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+              <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 dark:border-amber-500/30 bg-white dark:bg-[#090d16] p-6 shadow-xs">
                 <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-amber-500/40 to-transparent" />
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -2066,7 +2066,7 @@ export default function DashboardClient({
                     {/* RADAR DE DOMÍNIO vs PESO DO EDITAL */}
                     {visibleCards.radarDomain && (
                       <div className="lg:col-span-7 flex flex-col">
-                        <div className="relative flex-1 overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+                        <div className="relative flex-1 overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#090d16] shadow-xs">
                           <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
                           <DomainRadarChart subjects={subjects} isLoading={isLoading} />
                         </div>
@@ -2100,7 +2100,7 @@ export default function DashboardClient({
 
                   {/* SUGESTÕES INTELIGENTES DA IA */}
                   {visibleCards.aiSuggestions && !isLoading && hasEditalSubjects && (
-                    <div className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+                    <div className="group relative overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 sm:p-6 shadow-xs">
                       <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/40 to-transparent" />
                       <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
@@ -2236,22 +2236,21 @@ export default function DashboardClient({
                     {/* COLUNA 3: SALA DE FOCO & HEATMAP ANUAL */}
                     <div className="space-y-6">
                       {visibleCards.focusRoom && (
-                        <div className="relative overflow-hidden rounded-3xl border border-indigo-200 dark:border-indigo-500/20 bg-linear-to-br from-indigo-50/70 via-white to-purple-50/60 dark:from-indigo-950/40 dark:via-slate-950/70 dark:to-purple-950/30 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl group hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all duration-300">
+                        <div className="relative overflow-hidden rounded-2xl border border-indigo-200 dark:border-indigo-500/25 bg-white dark:bg-[#090d16] p-6 shadow-xs group hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all duration-300">
                           <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/40 to-transparent" />
-                          <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-indigo-500/10 blur-2xl" />
 
                           <div className="relative z-10 space-y-4">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)] group-hover:scale-105 transition-transform">
-                                  <Headphones size={20} className="animate-pulse text-indigo-600 dark:text-indigo-400" />
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
+                                  <Headphones size={20} className="text-indigo-600 dark:text-indigo-400" />
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-1.5">
                                     <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                                       Sala de Foco
                                     </h3>
-                                    <span className="rounded-full border border-violet-300 bg-violet-100 text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/15 dark:text-violet-300 px-1.5 py-0.5 font-mono text-[9px] font-bold">
+                                    <span className="rounded-md border border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 px-1.5 py-0.5 font-mono text-[9px] font-bold">
                                       ZEN
                                     </span>
                                   </div>
@@ -2266,7 +2265,7 @@ export default function DashboardClient({
                                 className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 hover:bg-slate-200 dark:bg-white/[0.03] px-2.5 py-1 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all active:scale-95"
                                 title="Ativar tela cheia minimalista"
                               >
-                                <Maximize2 size={11} className="text-violet-600 dark:text-violet-400" />
+                                <Maximize2 size={11} className="text-indigo-600 dark:text-indigo-400" />
                                 <span>Modo Zen</span>
                               </button>
                             </div>
@@ -2278,7 +2277,7 @@ export default function DashboardClient({
                             <div className="pt-1">
                               <Link
                                 href={getHref("/study-room")}
-                                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-500/40 bg-linear-to-r from-indigo-600/90 via-purple-600/90 to-indigo-600/90 hover:from-indigo-500 hover:to-purple-500 py-3 px-4 text-xs font-bold text-white shadow-md shadow-indigo-600/20 active:scale-98 transition-all group/btn cursor-pointer"
+                                className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-500/40 bg-indigo-600 hover:bg-indigo-500 py-3 px-4 text-xs font-bold text-white shadow-md shadow-indigo-600/20 active:scale-98 transition-all group/btn cursor-pointer"
                               >
                                 <Headphones size={15} className="group-hover/btn:rotate-12 transition-transform" />
                                 <span>Entrar na Sala de Foco</span>
@@ -2290,7 +2289,7 @@ export default function DashboardClient({
                       )}
 
                       {visibleCards.heatmap && (
-                        <div className="rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl relative">
+                        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 shadow-xs relative">
                           <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-indigo-500/30 to-transparent" />
                           <Heatmap />
                         </div>
@@ -2304,7 +2303,7 @@ export default function DashboardClient({
 
         {/* BANNER DE REVELAÇÃO PROGRESSIVA: Alternar entre Visão Simples e Painel Completo */}
         {dashboardMode === "minimal" ? (
-          <div className="rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-slate-50/80 dark:bg-slate-900/40 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-slate-50/80 dark:bg-[#090d16] p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <Layers size={16} className="text-indigo-600 dark:text-indigo-400" />
@@ -2344,7 +2343,7 @@ export default function DashboardClient({
               <LeagueWidgetCard />
             </div>
 
-            <div className="block md:hidden rounded-3xl border border-indigo-200 dark:border-indigo-500/20 bg-linear-to-br from-indigo-50/70 via-white to-purple-50/60 dark:from-indigo-950/40 dark:via-slate-950/70 dark:to-purple-950/30 p-4 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+            <div className="block md:hidden rounded-2xl border border-indigo-200 dark:border-indigo-500/25 bg-white dark:bg-[#090d16] p-4 shadow-xs">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-300 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
@@ -2353,7 +2352,7 @@ export default function DashboardClient({
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">Sala de Foco</h4>
-                      <span className="rounded-full border border-violet-300 bg-violet-100 text-violet-800 dark:border-violet-500/30 dark:bg-violet-500/15 px-1 py-0.2 font-mono text-[8px] font-bold dark:text-violet-300">ZEN</span>
+                      <span className="rounded-md border border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/15 px-1 py-0.2 font-mono text-[8px] font-bold dark:text-indigo-300">ZEN</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Sons para concentração & Pomodoro</p>
                   </div>
@@ -2364,7 +2363,7 @@ export default function DashboardClient({
                     onClick={() => setIsZenModeOpen(true)}
                     className="cursor-pointer inline-flex items-center gap-1 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300 active:scale-95"
                   >
-                    <Maximize2 size={11} className="text-violet-600 dark:text-violet-400" />
+                    <Maximize2 size={11} className="text-indigo-600 dark:text-indigo-400" />
                     <span>Zen</span>
                   </button>
 
@@ -2379,7 +2378,7 @@ export default function DashboardClient({
               </div>
             </div>
 
-            <div className="block md:hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+            <div className="block md:hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 shadow-xs">
               <Heatmap />
             </div>
           </>

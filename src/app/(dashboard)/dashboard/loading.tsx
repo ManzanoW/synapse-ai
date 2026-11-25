@@ -33,7 +33,7 @@ export default function DashboardLoading() {
         </div>
 
         {/* Journey Hero Banner Skeleton */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-200 dark:border-white/[0.08] bg-white/80 dark:bg-slate-950/60 p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 shadow-xs">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:divide-x md:divide-slate-200/60 dark:md:divide-white/5">
             <div className="space-y-4 pr-0 md:pr-6">
               <div className="h-3 w-28 rounded bg-slate-200 dark:bg-slate-800/80 animate-pulse" />
@@ -58,18 +58,18 @@ export default function DashboardLoading() {
           {/* Left Column */}
           <div className="space-y-6 lg:col-span-8">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="h-64 rounded-3xl border border-slate-200 dark:border-white/[0.08] bg-white/70 dark:bg-slate-900/40 p-6 animate-pulse shadow-xs" />
-              <div className="h-64 rounded-3xl border border-slate-200 dark:border-white/[0.08] bg-white/70 dark:bg-slate-900/40 p-6 animate-pulse shadow-xs" />
+              <div className="h-64 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 animate-pulse shadow-xs" />
+              <div className="h-64 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 animate-pulse shadow-xs" />
             </div>
-            <div className="h-72 rounded-3xl border border-slate-200 dark:border-white/[0.08] bg-white/70 dark:bg-slate-900/40 p-6 animate-pulse shadow-xs" />
-            <div className="h-56 rounded-3xl border border-slate-200 dark:border-white/[0.08] bg-white/70 dark:bg-slate-900/40 p-6 animate-pulse shadow-xs" />
+            <div className="h-72 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 animate-pulse shadow-xs" />
+            <div className="h-56 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 animate-pulse shadow-xs" />
           </div>
 
           {/* Right Column */}
           <div className="space-y-6 lg:col-span-4">
-            <div className="h-52 rounded-3xl border border-slate-200 dark:border-white/[0.08] bg-white/70 dark:bg-slate-900/40 p-6 animate-pulse shadow-xs" />
-            <div className="h-44 rounded-3xl border border-slate-200 dark:border-white/[0.08] bg-white/70 dark:bg-slate-900/40 p-6 animate-pulse shadow-xs" />
-            <div className="h-44 rounded-3xl border border-slate-200 dark:border-white/[0.08] bg-white/70 dark:bg-slate-900/40 p-6 animate-pulse shadow-xs" />
+            <div className="h-52 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 animate-pulse shadow-xs" />
+            <div className="h-44 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 animate-pulse shadow-xs" />
+            <div className="h-44 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-6 animate-pulse shadow-xs" />
           </div>
         </div>
       </div>

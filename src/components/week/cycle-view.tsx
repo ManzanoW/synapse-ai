@@ -324,8 +324,7 @@ export function CycleView({
     <div className="space-y-10 animate-in fade-in duration-300">
       {/* 1. PAINEL DE TELEMETRIA SUPERIOR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/95 dark:via-slate-950 dark:to-indigo-950/50 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 sm:p-8 relative overflow-hidden backdrop-blur-xl shadow-xs dark:shadow-2xl flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="lg:col-span-2 bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xs flex flex-col justify-between">
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
             <div className="space-y-1.5">
@@ -444,7 +443,7 @@ export function CycleView({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 sm:p-8 backdrop-blur-xl flex flex-col justify-between space-y-6 shadow-xs dark:shadow-2xl">
+        <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 sm:p-8 flex flex-col justify-between space-y-6 shadow-xs">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
               <Sparkles size={15} className="text-indigo-600 dark:text-indigo-400" />
@@ -533,16 +532,12 @@ export function CycleView({
           </div>
 
           <div
-            className="bg-gradient-to-r from-slate-900 via-indigo-950/50 to-slate-900 border-2 border-indigo-500/80 rounded-3xl p-6 sm:p-10 shadow-[0_0_50px_rgba(99,102,241,0.25)] relative overflow-hidden transition-all group"
+            className="bg-[#090d16] border-2 border-indigo-500/80 rounded-2xl p-6 sm:p-10 shadow-lg relative overflow-hidden transition-all group"
             style={{
               borderColor: currentBlock.color,
-              boxShadow: `0 0 35px ${currentBlock.color}30`,
+              boxShadow: `0 0 24px ${currentBlock.color}20`,
             }}
           >
-            <div
-              className="absolute -right-10 -bottom-10 w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
-              style={{ backgroundColor: currentBlock.color }}
-            />
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
               <div className="space-y-5 max-w-3xl">
@@ -856,7 +851,7 @@ export function CycleView({
       {/* MODAL DE SWAP */}
       {swapModalOpen && blockToSwap && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-6 shadow-2xl relative">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 sm:p-7 space-y-6 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -936,8 +931,7 @@ export function CycleView({
       {/* PLAYER DE ESTUDO IMERSIVO */}
       {activeSessionBlock && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#090d16] border border-indigo-500/40 rounded-3xl max-w-2xl w-full p-6 sm:p-9 space-y-6 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="bg-[#090d16] border border-indigo-500/40 rounded-2xl max-w-2xl w-full p-6 sm:p-9 space-y-6 shadow-2xl relative overflow-hidden">
 
             <div className="flex justify-between items-start border-b border-slate-800/80 pb-4">
               <div>
@@ -964,7 +958,7 @@ export function CycleView({
               </button>
             </div>
 
-            <div className="flex flex-col items-center justify-center py-8 bg-slate-950/90 border border-slate-800/90 rounded-3xl space-y-3 shadow-inner">
+            <div className="flex flex-col items-center justify-center py-8 bg-[#030712] border border-slate-800/80 rounded-2xl space-y-3 shadow-inner">
               <span className="text-5xl sm:text-7xl font-black text-white font-mono tracking-wider drop-shadow-[0_0_20px_rgba(99,102,241,0.5)]">
                 {formatTimer(secondsRemaining)}
               </span>

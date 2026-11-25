@@ -1311,11 +1311,8 @@ export function QuizResolutionView({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -direction * 24 }}
                 transition={{ duration: 0.22, ease: "easeOut" }}
-                className="bg-[#070b16]/90 border border-violet-500/20 rounded-3xl p-5 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden"
+                className="bg-[#090d16] border border-slate-800/80 rounded-2xl p-5 sm:p-8 shadow-xs relative overflow-hidden"
               >
-                {/* Glow decorativo de fundo */}
-                <div className="pointer-events-none absolute -top-24 -right-24 w-72 h-72 rounded-full bg-violet-600/10 blur-[90px]" />
-                <div className="pointer-events-none absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-indigo-600/10 blur-[90px]" />
 
                 {/* HEADER DA QUESTÃO */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6 gap-3 flex-wrap relative z-10">
@@ -1719,7 +1716,7 @@ export function QuizResolutionView({
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className={`mt-6 rounded-3xl p-5 sm:p-6 border shadow-2xl space-y-4 relative z-10 transition-colors backdrop-blur-xl ${
+                    className={`mt-6 rounded-2xl p-5 sm:p-6 border shadow-xs space-y-4 relative z-10 transition-colors ${
                       isCurrentCorrect
                         ? "bg-slate-950/85 border-emerald-500/30 shadow-[0_0_35px_rgba(16,185,129,0.06)]"
                         : "bg-slate-950/85 border-rose-500/30 shadow-[0_0_35px_rgba(244,63,94,0.06)]"
@@ -1998,7 +1995,7 @@ export function QuizResolutionView({
                             {/* Barra de Shimmer */}
                             <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-linear-to-r from-violet-500 via-indigo-400 to-violet-500 rounded-full transition-all duration-500"
+                                className="h-full bg-linear-to-r from-indigo-500 to-cyan-400 rounded-full transition-all duration-500"
                                 style={{ width: `${((deepeningStep + 1) / 3) * 100}%` }}
                               />
                             </div>
@@ -2268,7 +2265,7 @@ export function QuizResolutionView({
                         onClick={handleConfirmAnswer}
                         disabled={!currentSelectedAlt}
                         type="button"
-                        className="px-6 py-2.5 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-violet-950/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95 flex items-center gap-2"
+                        className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-95 flex items-center gap-2"
                       >
                         <span>Responder Questão</span>
                         <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-white/20 text-[10px] font-mono font-bold lowercase tracking-normal">↵ enter</kbd>
@@ -2551,7 +2548,7 @@ export function QuizResolutionView({
               onClick={handleConfirmAnswer}
               disabled={!currentSelectedAlt}
               type="button"
-              className="flex-[2] py-3 px-4 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-violet-950/50 disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer active:scale-95 flex items-center justify-center"
+              className="flex-[2] py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-950/40 disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer active:scale-95 flex items-center justify-center"
             >
               Responder
             </button>
@@ -2667,7 +2664,7 @@ export function QuizResolutionView({
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
-              className="max-w-md w-full bg-[#0c101d] border border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-4 text-center"
+              className="max-w-md w-full bg-[#090d16] border border-amber-500/40 rounded-2xl p-6 shadow-2xl space-y-4 text-center"
             >
               <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
                 <Clock size={24} />
@@ -2759,7 +2756,7 @@ export function QuizResolutionView({
                     setShowFinishConfirmModal(false);
                     handleFinalize();
                   }}
-                  className="px-4 py-2 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-violet-950/40 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-950/40 cursor-pointer"
                 >
                   Finalizar Mesmo Assim
                 </button>
