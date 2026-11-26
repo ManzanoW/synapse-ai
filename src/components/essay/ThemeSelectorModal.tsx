@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { toast } from "@/components/ui/toast";
 import {
   Sparkles,
   X,
@@ -92,12 +93,12 @@ export function ThemeSelectorModal({
         setGeneratedTheme(res.data);
       } else {
         triggerHaptic("warning");
-        alert(res.error || "Erro ao gerar proposta com IA. Tente novamente.");
+        toast.error(res.error || "Erro ao gerar proposta com IA. Tente novamente.");
       }
     } catch (e) {
       triggerHaptic("warning");
       console.error(e);
-      alert("Falha de conexão ao gerar o tema.");
+      toast.error("Falha de conexão ao gerar o tema.");
     } finally {
       setIsGenerating(false);
     }
@@ -120,7 +121,7 @@ export function ThemeSelectorModal({
 
   const handleConfirmManual = () => {
     if (!manualTitle.trim()) {
-      alert("Informe o título ou tema da redação.");
+      toast.warning("Informe o título ou tema da redação.");
       return;
     }
 

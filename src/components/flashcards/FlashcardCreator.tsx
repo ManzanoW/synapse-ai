@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "@/components/ui/toast";
 
 export default function FlashcardCreator({ topicId }: { topicId: string }) {
   const [question, setQuestion] = useState("");
@@ -20,9 +21,9 @@ export default function FlashcardCreator({ topicId }: { topicId: string }) {
       setQuestion("");
       setAnswer("");
       setDetails("");
-      alert("Flashcard adicionado com sucesso!");
+      toast.success("Flashcard adicionado com sucesso!");
     } else {
-      alert("Erro ao salvar flashcard.");
+      toast.error("Erro ao salvar flashcard.");
     }
   };
 

@@ -383,14 +383,11 @@ export function GoldenVersionSplitView({
               : "flex"
           }`}
         >
-          {/* Brilho neon de fundo */}
-          <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-violet-600/15 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl" />
 
           {/* Header do Painel Direito */}
-          <div className="flex items-center justify-between border-b border-violet-200 dark:border-violet-500/20 pb-3.5 relative z-10">
+          <div className="flex items-center justify-between border-b border-indigo-200 dark:border-indigo-500/20 pb-3.5 relative z-10">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-violet-500/15 dark:bg-violet-500/20 text-violet-600 dark:text-violet-300 border border-violet-500/30">
+              <div className="p-1.5 rounded-lg bg-indigo-500/15 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30">
                 <Sparkles size={16} className="text-amber-500 dark:text-amber-300" />
               </div>
               <div>
@@ -398,7 +395,7 @@ export function GoldenVersionSplitView({
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                     Versão Padrão Ouro {banca}
                   </h3>
-                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                  <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                     Gabaritada
                   </span>
                 </div>
@@ -409,14 +406,14 @@ export function GoldenVersionSplitView({
             </div>
 
             {/* Badge de Nota Máxima 100.0 */}
-            <div className="px-3 py-1 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 border border-violet-400/40 text-xs font-mono font-black text-white shadow-lg shadow-violet-600/30 flex items-center gap-1">
+            <div className="px-3 py-1 rounded-xl bg-indigo-600 border border-indigo-400/40 text-xs font-mono font-black text-white shadow-lg shadow-indigo-600/25 flex items-center gap-1">
               <Award size={13} className="text-amber-300" />
               <span>100.0 / 100</span>
             </div>
           </div>
 
           {/* Corpo do Texto Padrão Ouro com Régua de Linhas */}
-          <div className="bg-white dark:bg-[#0b0e1b] border border-violet-200 dark:border-violet-500/20 rounded-xl p-4 sm:p-5 max-h-[750px] overflow-y-auto space-y-2 relative z-10 select-text">
+          <div className="bg-white dark:bg-[#090d16] border border-indigo-200 dark:border-indigo-500/20 rounded-xl p-4 sm:p-5 max-h-[750px] overflow-y-auto space-y-2 relative z-10 select-text">
             {goldenLines.map((line, idx) => (
               <div
                 key={idx}

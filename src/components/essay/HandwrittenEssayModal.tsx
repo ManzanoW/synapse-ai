@@ -186,7 +186,7 @@ export function HandwrittenEssayModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100">
+      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
@@ -256,7 +256,7 @@ export function HandwrittenEssayModal({
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleFileDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-3xl p-8 sm:p-10 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 ${
+                className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 ${
                   isDragging
                     ? "border-rose-500 bg-rose-50/50 dark:bg-rose-950/20"
                     : "border-slate-300 dark:border-slate-700 hover:border-rose-400 dark:hover:border-rose-500 bg-slate-50/50 dark:bg-slate-800/20"
@@ -353,7 +353,7 @@ export function HandwrittenEssayModal({
           {result && !loading && (
             <div className="space-y-6">
               {/* Placar de Notas */}
-              <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white shadow-xl flex flex-wrap items-center justify-between gap-4">
+              <div className="p-6 rounded-2xl bg-[#090d16] border border-slate-800/80 text-white shadow-xs flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1">
                   <span className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
                     <Award className="w-4 h-4" />

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { toast } from "@/components/ui/toast";
 import {
   Camera,
   Upload,
@@ -293,10 +294,10 @@ export function QuestionScannerModal({
         setIsSavedToNotebook(true);
       } else {
         triggerHaptic("warning");
-        alert(res.error || "Erro ao salvar no caderno.");
+        toast.error(res.error || "Erro ao salvar no caderno.");
       }
     } catch {
-      alert("Erro ao salvar no caderno.");
+      toast.error("Erro ao salvar no caderno.");
     } finally {
       setIsSavingNotebook(false);
     }
@@ -319,10 +320,10 @@ export function QuestionScannerModal({
         setIsSavedToFlashcards(true);
       } else {
         triggerHaptic("warning");
-        alert(res.error || "Erro ao criar flashcard.");
+        toast.error(res.error || "Erro ao criar flashcard.");
       }
     } catch {
-      alert("Erro ao criar flashcard.");
+      toast.error("Erro ao criar flashcard.");
     } finally {
       setIsSavingFlashcards(false);
     }

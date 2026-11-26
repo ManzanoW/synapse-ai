@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { toast } from "@/components/ui/toast";
 import {
   Brain,
   Sparkles,
@@ -613,7 +614,7 @@ export function MindMapCanvas({
 
       const printWindow = window.open("", "_blank");
       if (!printWindow) {
-        alert("Permita pop-ups no navegador para imprimir o mapa mental.");
+        toast.warning("Permita pop-ups no navegador para imprimir o mapa mental.");
         return;
       }
 

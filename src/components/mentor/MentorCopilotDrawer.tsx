@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "@/components/ui/toast";
 import {
   Brain,
   Sparkles,
@@ -97,7 +98,7 @@ export function MentorCopilotDrawer({
           onGuidanceGenerated(res.data);
         }
       } else {
-        alert(res.error || "Não foi possível gerar a orientação do Mentor IA.");
+        toast.error(res.error || "Não foi possível gerar a orientação do Mentor IA.");
       }
     } catch (err) {
       console.error("Erro ao solicitar mentor guidance:", err);
@@ -149,14 +150,14 @@ export function MentorCopilotDrawer({
         <div className="p-4 sm:p-5 border-b border-white/10 bg-[#0c1020]/90 backdrop-blur-md relative z-10">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-linear-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-violet-600/30 ring-2 ring-violet-400/30">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/25">
                 <Brain className="w-5 h-5 animate-pulse" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-black text-white tracking-tight flex items-center gap-1.5">
                     Copilot Mentor IA
-                    <span className="text-[10px] bg-violet-500/20 border border-violet-400/40 text-violet-300 font-mono px-2 py-0.5 rounded-full font-bold">
+                    <span className="text-[10px] bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 font-mono px-2 py-0.5 rounded-full font-bold">
                       Ajuda na Questão
                     </span>
                   </h2>
@@ -264,7 +265,7 @@ export function MentorCopilotDrawer({
                 type="button"
                 onClick={handleFetchGuidance}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-900/40 cursor-pointer disabled:opacity-50 transition-all active:scale-95"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-900/40 cursor-pointer disabled:opacity-50 transition-all active:scale-95"
               >
                 {isLoading ? (
                   <>
@@ -290,10 +291,10 @@ export function MentorCopilotDrawer({
                   transition={{ duration: 0.18 }}
                   className="space-y-4"
                 >
-                  <div className="p-4 rounded-2xl bg-linear-to-b from-violet-950/30 to-violet-950/10 border border-violet-500/30 relative">
+                  <div className="p-4 rounded-2xl bg-[#090d16] border border-indigo-500/30 relative">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2 text-violet-300 text-xs font-bold">
-                        <Lightbulb size={16} className="text-violet-400" />
+                      <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold">
+                        <Lightbulb size={16} className="text-indigo-400" />
                         <span>Dica para Resolver (Sem Spoilers)</span>
                       </div>
                       <button

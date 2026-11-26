@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "@/components/ui/toast";
 import {
   X,
   Loader2,
@@ -82,7 +83,7 @@ export default function FlashcardModal({
         onClose();
       } catch (err) {
         console.error("Erro ao salvar flashcard:", err);
-        alert("Não foi possível salvar o flashcard. Tente novamente.");
+        toast.error("Não foi possível salvar o flashcard. Tente novamente.");
       } finally {
         setSubmitting(false);
       }
