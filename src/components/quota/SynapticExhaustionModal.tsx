@@ -107,16 +107,13 @@ export function SynapticExhaustionModal({
     <>
       <AnimatePresence>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md">
-          {/* Ambient Glows */}
-          <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl animate-pulse" />
-          <div className="pointer-events-none absolute -bottom-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.94, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 15 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
-            className="bg-[#060913]/95 border border-cyan-500/30 dark:border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full relative overflow-hidden shadow-2xl shadow-indigo-950/80 backdrop-blur-2xl text-center space-y-4 max-h-[92vh] overflow-y-auto"
+            className="bg-[#090d16] border border-slate-800/80 rounded-2xl p-5 sm:p-6 max-w-lg w-full relative overflow-hidden shadow-2xl text-center space-y-4 max-h-[92vh] overflow-y-auto"
           >
             {/* Botão Fechar */}
             <button
@@ -255,7 +252,7 @@ export function SynapticExhaustionModal({
               <Link
                 href="/pricing"
                 onClick={handleClose}
-                className="w-full py-3 px-4 rounded-xl text-white font-black text-xs flex items-center justify-center gap-2 shadow-xl shadow-indigo-950/60 transition-all cursor-pointer group bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 hover:from-violet-500 hover:to-indigo-600 border border-violet-400/30 hover:border-violet-300/50 active:scale-98"
+                className="w-full py-3 px-4 rounded-xl text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-950/50 transition-all cursor-pointer group bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 active:scale-98"
               >
                 <Crown
                   size={15}

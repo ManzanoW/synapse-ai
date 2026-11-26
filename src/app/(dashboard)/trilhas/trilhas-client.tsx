@@ -2149,7 +2149,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
                 return (
                   <div
                     key={course.id}
-                    className="p-6 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-4 flex flex-col justify-between"
+                    className="p-6 rounded-2xl bg-[#090d16] border border-slate-800/80 space-y-4 flex flex-col justify-between"
                   >
                     <div className="space-y-4">
                       <div className="flex items-start justify-between gap-3">
@@ -2219,12 +2219,12 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
          ========================================================= */}
       {isTheoryOpen && activeLesson && activeTheoryData && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className={`rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[92vh] border transition-colors ${
+          <div className={`rounded-2xl max-w-4xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[92vh] border transition-colors ${
             readingTheme === "sepia"
               ? "bg-[#fbf0d9] border-[#e2d4b7] text-[#2c2214]"
               : readingTheme === "light"
                 ? "bg-white border-slate-200 text-slate-900"
-                : "bg-slate-900 border-slate-700 text-slate-300"
+                : "bg-[#090d16] border-slate-800/80 text-slate-300"
           }`}>
             {/* Barra de Topo do Leitor */}
             <div className={`p-4 sm:p-5 border-b flex flex-wrap items-center justify-between gap-3 transition-colors ${
@@ -2848,7 +2848,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
          ========================================================= */}
       {isWizardOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[92vh]">
+          <div className="bg-[#090d16] border border-slate-800/80 rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl my-auto flex flex-col max-h-[92vh]">
             {/* Cabeçalho do Wizard */}
             <div className="p-5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
               <div className="space-y-1">
@@ -3153,7 +3153,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
           <form
             onSubmit={handleCreateNewExternalCourse}
-            className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl"
+            className="bg-[#090d16] border border-slate-800/80 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl"
           >
             <div className="p-5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
               <h3 className="text-base font-extrabold text-white">
@@ -3247,7 +3247,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
          ========================================================= */}
       {elitePaywall.open && (
         <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-amber-500/60 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl shadow-amber-950/40">
+          <div className="bg-[#090d16] border-2 border-amber-500/60 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl shadow-amber-950/40">
             <div className="p-6 bg-linear-to-b from-amber-500/15 via-slate-900 to-slate-900 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-black uppercase tracking-wider">
