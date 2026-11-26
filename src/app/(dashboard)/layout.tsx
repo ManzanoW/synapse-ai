@@ -8,6 +8,7 @@ import { CommandPalette } from "@/components/command-palette/CommandPalette";
 import { ScrollToTopButton } from "@/components/ui/ScrollToTopButton";
 import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal";
 import { QuickScratchpadWidget } from "@/components/ui/QuickScratchpadWidget";
+import { Toaster } from "@/components/ui/toast";
 import { DemoSessionSync } from "@/components/auth/demo-session-sync";
 import { SoundscapeFloatingWidget } from "@/components/audio/SoundscapeFloatingWidget";
 import { SynapticExhaustionModal } from "@/components/quota/SynapticExhaustionModal";
@@ -124,6 +125,9 @@ export default async function DashboardLayout({
               <div className="print:hidden">
                 <SynapticExhaustionModal />
               </div>
+
+              {/* Notificações Toast Globais */}
+              <Toaster />
             </div>
           </AudioProvider>
         </AchievementProvider>

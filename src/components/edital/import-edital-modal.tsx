@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "@/components/ui/toast";
 import {
   X,
   Upload,
@@ -120,7 +121,7 @@ export function ImportEditalModal({
           selectedFile.type === "application/pdf" ||
           selectedFile.name.endsWith(".pdf")
         ) {
-          alert(
+          toast.info(
             "Para PDFs do edital, selecione e copie o trecho de Conteúdo Programático diretamente do seu leitor de PDF e cole na aba 'Colar Texto do Edital'.",
           );
           setIsProcessing(false);
@@ -144,7 +145,7 @@ export function ImportEditalModal({
         });
       } else {
         if (!contentToProcess.trim()) {
-          alert("Por favor, insira o texto do edital antes de prosseguir.");
+          toast.warning("Por favor, insira o texto do edital antes de prosseguir.");
           setIsProcessing(false);
           return;
         }
@@ -160,7 +161,7 @@ export function ImportEditalModal({
 
       if (!response.ok) {
         if (result.error === "FEATURE_LOCKED_PRO" || response.status === 403) {
-          alert(
+          toast.warning(
             result.message ||
               "O upload e processamento de arquivos PDF com IA é exclusivo do plano Synapse Pro. Você pode utilizar a inserção manual na aba 'Colar Texto do Edital'.",
           );
@@ -200,7 +201,7 @@ export function ImportEditalModal({
       );
 
       if (formattedSubjects.length === 0) {
-        alert(
+        toast.warning(
           "Nenhuma matéria foi encontrada no texto enviado. Tente colar apenas o trecho do Conteúdo Programático.",
         );
         return;
@@ -217,7 +218,7 @@ export function ImportEditalModal({
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("Erro ao importar edital:", error);
-      alert(`Ocorreu um erro: ${msg}`);
+      toast.error(`Ocorreu um erro: ${msg}`);
     } finally {
       setIsProcessing(false);
     }
@@ -286,7 +287,7 @@ export function ImportEditalModal({
       .filter((sub) => sub.topics.length > 0);
 
     if (finalData.length === 0) {
-      alert("Selecione ao menos um tópico para importar.");
+      toast.warning("Selecione ao menos um tópico para importar.");
       return;
     }
 

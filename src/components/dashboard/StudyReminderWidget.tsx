@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Bell, BellRing, Check, Clock, Flame, Shield, X } from "lucide-react";
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { toast } from "@/components/ui/toast";
 
 interface StudyReminderWidgetProps {
   currentStreak?: number;
@@ -35,7 +36,7 @@ export function StudyReminderWidget({ currentStreak = 0 }: StudyReminderWidgetPr
     triggerHaptic("medium");
 
     if (!("Notification" in window)) {
-      alert("Seu navegador não suporta notificações de sistema.");
+      toast.warning("Seu navegador não suporta notificações de sistema.");
       return;
     }
 

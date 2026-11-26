@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSidebar } from "@/lib/sidebar-context";
 import { useGamification } from "@/context/GamificationContext";
+import { toast } from "@/components/ui/toast";
 
 import {
   Menu,
@@ -542,8 +543,8 @@ export default function QuestoesPage() {
       });
 
       if (allSavedQuestions.length === 0) {
-        alert(
-          "Nenhum simulado salvo encontrado no seu acervo ainda. Gere um simulado com IA ou carregue seu histórico para preencher as questões.",
+        toast.info(
+          "Nenhum simulado salvo encontrado no seu acervo ainda. Gere um simulado ou carregue seu histórico para preencher as questões.",
         );
         return;
       }

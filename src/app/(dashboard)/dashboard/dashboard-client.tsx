@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, {
   useState,
@@ -959,7 +959,7 @@ export default function DashboardClient({
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                           Valor da Minha Hora
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
                             Dopamina
                           </span>
                         </div>
@@ -1234,7 +1234,7 @@ export default function DashboardClient({
           {/* LAYOUT MOBILE */}
           <div className="grid grid-cols-3 gap-2 text-center divide-x divide-slate-200 dark:divide-white/5 md:hidden">
             <div className="px-1 flex flex-col items-center justify-center">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                 Dias
               </span>
               {isLoading ? (
@@ -1251,11 +1251,11 @@ export default function DashboardClient({
                   Definir
                 </Link>
               )}
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">restantes</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block">restantes</span>
             </div>
 
             <div className="px-1 flex flex-col items-center justify-center">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
                 Ritmo
               </span>
               {isLoading ? (
@@ -1269,13 +1269,13 @@ export default function DashboardClient({
                   —
                 </span>
               )}
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block">
                 assuntos/sem
               </span>
             </div>
 
             <div className="px-1 flex flex-col items-center justify-center">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block">
                 Progresso
               </span>
               {isLoading ? (
@@ -1285,7 +1285,7 @@ export default function DashboardClient({
                   {stats?.journey?.percentage ?? 0}%
                 </span>
               )}
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 block">do edital</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block">do edital</span>
             </div>
           </div>
 
@@ -1397,7 +1397,7 @@ export default function DashboardClient({
                     {hasEditalSubjects &&
                       (stats?.journey?.currentPace ?? 0) >= (stats?.journey?.topicsPerWeek ?? 1) &&
                       (stats?.journey?.topicsPerWeek ?? 0) > 0 && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                           ✨ No Alvo
                         </span>
                     )}
@@ -1598,7 +1598,7 @@ export default function DashboardClient({
 
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 dark:border-white/5 pt-4 text-center">
                   <div className="rounded-2xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                    <span className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
                       Sessões
                     </span>
                     {isLoading ? (
@@ -1610,7 +1610,7 @@ export default function DashboardClient({
                     )}
                   </div>
                   <div className="rounded-2xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                    <span className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
                       Questões
                     </span>
                     {isLoading ? (
@@ -1622,7 +1622,7 @@ export default function DashboardClient({
                     )}
                   </div>
                   <div className="rounded-2xl border border-slate-200/80 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02] p-2.5">
-                    <span className="block text-[9px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                    <span className="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
                       Méd/Dia
                     </span>
                     {isLoading ? (
@@ -1756,7 +1756,7 @@ export default function DashboardClient({
                         <span className="text-xs font-black text-rose-500 dark:text-rose-300 block">
                           ⚡ Exterminar Erros
                         </span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500/20 text-rose-300">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-rose-500/20 text-rose-300">
                           1-Clique
                         </span>
                       </div>
@@ -1777,7 +1777,7 @@ export default function DashboardClient({
                         <span className="text-xs font-black text-amber-600 dark:text-amber-300 block">
                           📄 Folha de Véspera A4
                         </span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-300">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300">
                           PDF
                         </span>
                       </div>
@@ -2111,7 +2111,7 @@ export default function DashboardClient({
                             Sugestões Inteligentes da IA
                           </h3>
                         </div>
-                        <span className="rounded-full border border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 px-2.5 py-0.5 font-mono text-[9px] font-bold">
+                        <span className="rounded-full border border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-300 px-2.5 py-0.5 font-mono text-[10px] font-bold">
                           Synapse Neural
                         </span>
                       </div>
@@ -2250,7 +2250,7 @@ export default function DashboardClient({
                                     <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                                       Sala de Foco
                                     </h3>
-                                    <span className="rounded-md border border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 px-1.5 py-0.5 font-mono text-[9px] font-bold">
+                                    <span className="rounded-md border border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 px-1.5 py-0.5 font-mono text-[10px] font-bold">
                                       ZEN
                                     </span>
                                   </div>
@@ -2352,7 +2352,7 @@ export default function DashboardClient({
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">Sala de Foco</h4>
-                      <span className="rounded-md border border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/15 px-1 py-0.2 font-mono text-[8px] font-bold dark:text-indigo-300">ZEN</span>
+                      <span className="rounded-md border border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/15 px-1 py-0.2 font-mono text-[10px] font-bold dark:text-indigo-300">ZEN</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Sons para concentração & Pomodoro</p>
                   </div>

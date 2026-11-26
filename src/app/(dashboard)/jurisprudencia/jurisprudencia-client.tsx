@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useTransition, useCallback, useEffect } from "react";
+import { toast } from "@/components/ui/toast";
 import {
   Scale,
   Swords,
@@ -170,7 +171,7 @@ export default function JurisprudenciaClient({
     (item: JurisprudenceItem) => {
       triggerHaptic("medium");
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-        alert("Seu navegador não possui suporte para síntese de voz nativa.");
+        toast.warning("Seu navegador não possui suporte para síntese de voz nativa.");
         return;
       }
 
@@ -329,11 +330,11 @@ export default function JurisprudenciaClient({
         } catch {}
       } else {
         triggerHaptic("warning");
-        alert(res.error || "Erro ao salvar flashcard.");
+        toast.error(res.error || "Erro ao salvar flashcard.");
       }
     } catch {
       triggerHaptic("error");
-      alert("Erro ao salvar flashcard.");
+      toast.error("Erro ao salvar flashcard.");
     } finally {
       setSavingFlashcardId(null);
     }

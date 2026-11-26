@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
+import { toast } from "@/components/ui/toast";
 import {
   ChevronDown,
   ChevronRight,
@@ -117,7 +118,7 @@ export function PlannerView({
       }
     } catch (err: unknown) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Erro ao atualizar tópicos da matéria.");
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar tópicos da matéria.");
     } finally {
       setBatchUpdatingSubject(null);
       setBatchResetSubject(null);
