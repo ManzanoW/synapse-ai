@@ -187,8 +187,7 @@ export function LeiSecaClient() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto font-sans pb-12">
       {/* HEADER DA PÁGINA */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-linear-to-r from-indigo-950/60 via-slate-900/80 to-[#070b14] border border-indigo-500/30 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-[#090d16] border border-indigo-500/30 shadow-xs relative overflow-hidden">
 
         <div className="flex items-center gap-3.5 relative z-10">
           <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-400 shadow-lg shadow-indigo-950/50">
@@ -299,7 +298,7 @@ export function LeiSecaClient() {
       {/* LISTA DE ARTIGOS INTERATIVOS */}
       <div className="space-y-4">
         {filteredArticles.length === 0 ? (
-          <div className="py-16 text-center space-y-2 bg-slate-900/30 border border-white/5 rounded-3xl">
+          <div className="py-16 text-center space-y-2 bg-[#090d16] border border-slate-800/80 rounded-2xl">
             <BookOpen size={32} className="mx-auto text-slate-600" />
             <p className="text-sm font-bold text-slate-400">
               Nenhum artigo encontrado para o filtro selecionado.
@@ -315,7 +314,7 @@ export function LeiSecaClient() {
             return (
               <div
                 key={article.id}
-                className="p-5 sm:p-6 rounded-3xl bg-[#090d18] border border-white/10 hover:border-indigo-500/40 shadow-xl space-y-4 transition-all duration-200 relative group"
+                className="p-5 sm:p-6 rounded-2xl bg-[#090d16] border border-slate-800/80 hover:border-indigo-500/40 shadow-xs space-y-4 transition-all duration-200 relative group"
               >
                 {/* TOPO DO ARTIGO */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">

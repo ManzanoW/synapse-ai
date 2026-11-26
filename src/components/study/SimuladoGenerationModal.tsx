@@ -233,17 +233,13 @@ export function SimuladoGenerationModal({
       <AnimatePresence>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
 
-        {/* Glows ambientais sutis */}
-        <div className="pointer-events-none absolute -top-28 left-1/2 -translate-x-1/2 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl animate-pulse" />
-        <div className="pointer-events-none absolute -bottom-28 left-1/2 -translate-x-1/2 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-3xl" />
-
-        {/* Card Principal Glassmorphism Dark Futurista */}
+        {/* Card Principal */}
         <motion.div
           initial={{ opacity: 0, scale: 0.94, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 15 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="bg-black/85 backdrop-blur-md border border-violet-500/20 rounded-2xl p-6 sm:p-8 max-w-lg w-full relative overflow-hidden shadow-2xl shadow-violet-950/40 text-center space-y-6"
+          className="bg-[#090d16] border border-indigo-500/30 rounded-2xl p-6 sm:p-8 max-w-lg w-full relative overflow-hidden shadow-2xl text-center space-y-6"
         >
           {/* Botão Fechar (X) - garante que o usuário nunca fique preso */}
           {onClose && (
@@ -333,12 +329,12 @@ export function SimuladoGenerationModal({
                     scale: [0.95, 1.05, 0.95],
                   }}
                   transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                  className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-linear-to-tr from-violet-600/30 via-fuchsia-500/20 to-indigo-600/30 border border-violet-400/50 flex items-center justify-center relative shadow-[0_0_20px_rgba(168,85,247,0.35)]"
+                  className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-indigo-600/20 border border-indigo-400/50 flex items-center justify-center relative shadow-[0_0_20px_rgba(99,102,241,0.25)]"
                 >
                   {displayValue >= 98 && !isGenerating ? (
                     <CheckCircle2 size={28} className="text-emerald-400 animate-bounce" />
                   ) : (
-                    <Brain size={26} className="text-violet-300 animate-pulse" />
+                    <Brain size={26} className="text-indigo-300 animate-pulse" />
                   )}
 
                   {/* Ponto orbital neural */}

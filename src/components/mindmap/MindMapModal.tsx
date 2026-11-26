@@ -163,22 +163,19 @@ export function MindMapModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ duration: 0.22, ease: "easeOut" }}
-        className="relative w-full max-w-6xl bg-[#060914] border border-violet-500/30 rounded-3xl shadow-2xl shadow-violet-950/40 flex flex-col overflow-hidden z-10 max-h-[95vh]"
+        className="relative w-full max-w-6xl bg-[#090d16] border border-slate-800/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-10 max-h-[95vh]"
       >
-        {/* Glow de fundo */}
-        <div className="pointer-events-none absolute -top-32 -right-32 w-80 h-80 rounded-full bg-violet-600/15 blur-[120px]" />
-        <div className="pointer-events-none absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-cyan-600/10 blur-[120px]" />
 
         {/* CABEÇALHO DO MODAL */}
-        <div className="p-4 sm:p-5 border-b border-white/10 bg-[#090d1c]/90 backdrop-blur-md flex items-center justify-between gap-4 relative z-10">
+        <div className="p-4 sm:p-5 border-b border-white/10 bg-[#030712]/80 flex items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-violet-600/30 ring-2 ring-violet-400/30 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/25 shrink-0">
               <Brain className="w-5 h-5" />
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-violet-400 bg-violet-500/15 border border-violet-500/30 px-2.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
                   {subjectName}
                 </span>
                 <span className="text-[10px] font-mono font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full">
@@ -218,7 +215,7 @@ export function MindMapModal({
           {isLoading ? (
             <div className="h-[550px] flex flex-col items-center justify-center text-center p-6 space-y-4">
               <div className="relative">
-                <div className="w-16 h-16 rounded-3xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 animate-pulse">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 animate-pulse">
                   <Brain size={32} />
                 </div>
                 <div className="absolute -top-1 -right-1">
@@ -313,7 +310,7 @@ export function MindMapModal({
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-slate-900 border border-violet-500/30 rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 flex flex-col gap-4 text-center"
+                className="bg-[#090d16] border border-slate-800/80 rounded-2xl w-full max-w-md shadow-2xl p-5 sm:p-6 flex flex-col gap-4 text-center"
               >
                 <div className="mx-auto w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
                   <AlertTriangle size={24} />

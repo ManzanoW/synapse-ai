@@ -60,10 +60,10 @@ export function EssayResultView({
     <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto animate-in fade-in duration-200">
       {/* CARD PRINCIPAL DO VEREDITO DA BANCA */}
       <div
-        className={`p-6 sm:p-8 rounded-3xl border shadow-xl dark:shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 ${
+        className={`p-6 sm:p-8 rounded-2xl border shadow-xs relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 ${
           isApproved
-            ? "bg-emerald-50/70 border-emerald-200 text-slate-900 dark:bg-slate-950 dark:bg-gradient-to-br dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-950 dark:border-emerald-500/30 dark:shadow-emerald-950/20"
-            : "bg-rose-50/70 border-rose-200 text-slate-900 dark:bg-slate-950 dark:bg-gradient-to-br dark:from-rose-950/40 dark:via-slate-900 dark:to-slate-950 dark:border-rose-500/30 dark:shadow-rose-950/20"
+            ? "bg-emerald-50/70 border-emerald-200 text-slate-900 dark:bg-[#090d16] dark:border-emerald-500/30"
+            : "bg-rose-50/70 border-rose-200 text-slate-900 dark:bg-[#090d16] dark:border-rose-500/30"
         }`}
       >
         {/* Lado Esquerdo: Dados da Prova e Veredito */}
@@ -391,7 +391,7 @@ export function EssayResultView({
       {activeTab === "mirror" && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-200">
           {/* BANNER DA FÓRMULA OFICIAL */}
-          <div className="bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-950 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 shadow-xl text-slate-100 space-y-4">
+          <div className="bg-[#090d16] border border-indigo-500/30 rounded-2xl p-6 sm:p-8 shadow-xs text-slate-100 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
               <div className="flex items-center gap-2.5">
                 <div className="p-2.5 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300">
@@ -427,7 +427,7 @@ export function EssayResultView({
           </div>
 
           {/* TABELA DE DESDOBRAMENTO OFICIAL */}
-          <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 rounded-3xl p-5 sm:p-6 shadow-xs dark:shadow-xl space-y-4">
+          <div className="bg-white dark:bg-[#090d16] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-3">
               <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                 <FileText size={16} className="text-indigo-600 dark:text-indigo-400" />
@@ -487,7 +487,7 @@ export function EssayResultView({
             strengths={result.strengths}
           />
         ) : (
-          <div className="bg-gradient-to-b from-amber-500/10 via-slate-900/60 to-slate-900 border border-amber-500/30 rounded-3xl p-8 sm:p-12 text-center flex flex-col items-center justify-center gap-6 shadow-2xl relative overflow-hidden">
+          <div className="bg-[#090d16] border border-amber-500/30 rounded-2xl p-8 sm:p-12 text-center flex flex-col items-center justify-center gap-6 shadow-xs relative overflow-hidden">
             <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/20">
               <Crown size={32} />
             </div>

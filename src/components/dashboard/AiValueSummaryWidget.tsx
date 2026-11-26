@@ -43,7 +43,7 @@ export function AiValueSummaryWidget() {
 
   if (loading) {
     return (
-      <div className="w-full rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white/60 dark:bg-slate-950/60 p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl animate-pulse space-y-4">
+      <div className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 shadow-xs animate-pulse space-y-4">
         <div className="h-4 w-48 rounded-lg bg-slate-200 dark:bg-white/10" />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="h-16 rounded-2xl bg-slate-200 dark:bg-white/5" />
@@ -68,10 +68,7 @@ export function AiValueSummaryWidget() {
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-indigo-500/20 bg-white dark:bg-gradient-to-br dark:from-[#060914] dark:via-[#090d1f] dark:to-[#04060c] p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl transition-all duration-300">
-      {/* Luz Ambient de fundo */}
-      <div className="pointer-events-none absolute -top-20 -right-20 w-52 h-52 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500" />
-      <div className="pointer-events-none absolute -bottom-20 -left-20 w-52 h-52 bg-cyan-500/10 dark:bg-cyan-500/15 rounded-full blur-3xl" />
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200/90 dark:border-indigo-500/20 bg-white dark:bg-[#090d16] p-5 sm:p-6 shadow-xs transition-all duration-300">
 
       {/* Top Header */}
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-4 border-b border-slate-100 dark:border-white/5">
