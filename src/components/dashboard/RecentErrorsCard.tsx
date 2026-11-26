@@ -33,7 +33,7 @@ export function RecentErrorsCard() {
 
   if (loading) {
     return (
-      <div className="rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-950/60 p-5 animate-pulse space-y-3">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 animate-pulse space-y-3">
         <div className="h-4 w-36 bg-slate-200 dark:bg-slate-800 rounded-md" />
         <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded-xl" />
         <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded-xl" />
@@ -44,7 +44,7 @@ export function RecentErrorsCard() {
   // Se não houver erros pendentes, exibe estado de alta performance
   if (errors.length === 0) {
     return (
-      <div className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 shadow-xs dark:shadow-2xl backdrop-blur-2xl transition-all">
+      <div className="group relative overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 shadow-xs transition-all">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
@@ -71,7 +71,7 @@ export function RecentErrorsCard() {
   }
 
   return (
-    <div className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-slate-950/60 p-5 sm:p-6 shadow-xs dark:shadow-2xl backdrop-blur-2xl transition-all hover:border-rose-500/30">
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#090d16] p-5 sm:p-6 shadow-xs transition-all hover:border-rose-500/30">
       <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-rose-500/40 to-transparent" />
 
       {/* Header */}

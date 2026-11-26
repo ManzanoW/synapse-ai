@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "@/components/ui/toast";
 import {
   Clock,
   Pause,
@@ -553,7 +554,7 @@ export function QuizResolutionView({
           [activeQuestionIndex]: res.data!,
         }));
       } else {
-        alert(res.error || "Não foi possível aprofundar a explicação com IA.");
+        toast.error(res.error || "Não foi possível aprofundar a explicação com IA.");
       }
     } catch (err) {
       console.error("Erro ao aprofundar explicação:", err);

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "@/components/ui/toast";
 import Link from "next/link";
 import {
   Trophy,
@@ -699,7 +700,7 @@ export function QuizResultView({
           [qIndex]: res.data!,
         }));
       } else {
-        alert(res.error || "Não foi possível gerar o aprofundamento por IA.");
+        toast.error(res.error || "Não foi possível gerar o aprofundamento por IA.");
       }
     } catch (err) {
       console.error("Erro ao aprofundar com IA:", err);

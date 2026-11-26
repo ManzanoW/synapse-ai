@@ -116,11 +116,8 @@ export function PixPaymentModal({
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl text-slate-100 overflow-hidden"
+          className="relative w-full max-w-md bg-[#090d16] border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl text-slate-100 overflow-hidden"
         >
-          {/* Luz de fundo decorativa */}
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
           {/* Botão de Fechar */}
           <button

@@ -73,7 +73,7 @@ export function LeagueWidgetCard({
   if (loading) {
     return (
       <div
-        className={`relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white/70 p-5 shadow-xl backdrop-blur-xl dark:border-white/[0.08] dark:bg-slate-950/70 sm:p-6 ${className}`}
+        className={`relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800/80 dark:bg-[#090d16] sm:p-6 ${className}`}
       >
         <div className="flex animate-pulse items-center justify-between">
           <div className="flex items-center gap-3">
@@ -132,13 +132,8 @@ export function LeagueWidgetCard({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-xl backdrop-blur-2xl transition-all duration-300 hover:shadow-2xl dark:border-white/[0.08] dark:bg-slate-950/80 sm:p-6 ${className}`}
+      className={`group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-300 dark:border-slate-800/80 dark:bg-[#090d16] sm:p-6 ${className}`}
     >
-      {/* Luz ambiente de destaque com as cores da liga */}
-      <div
-        className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full blur-3xl opacity-40 dark:opacity-30"
-        style={{ backgroundColor: config.glowColor }}
-      />
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/40 to-transparent dark:via-amber-400/20" />
 
       {/* Cabeçalho */}

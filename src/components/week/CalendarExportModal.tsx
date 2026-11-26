@@ -1,6 +1,7 @@
 "use client";
 
 import { triggerHaptic } from "@/lib/sensory/haptics";
+import { toast } from "@/components/ui/toast";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -113,7 +114,7 @@ export function CalendarExportModal({ isOpen, onClose }: CalendarExportModalProp
       triggerHaptic("success");
     } catch (err: unknown) {
       triggerHaptic("warning");
-      alert(
+      toast.error(
         err instanceof Error
           ? err.message
           : "Erro ao baixar arquivo do calendário.",
