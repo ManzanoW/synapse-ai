@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { toast } from "@/components/ui/toast";
 import {
   Mic,
   MicOff,
@@ -245,7 +246,7 @@ export default function ProvaOralClient({
         speakExaminerQuestion(res.data.enunciadoExaminador);
       }
     } catch (err) {
-      alert("Erro ao iniciar a sabatina.");
+      toast.error("Erro ao iniciar a sabatina.");
     } finally {
       setIsGeneratingQuestion(false);
     }
@@ -270,7 +271,7 @@ export default function ProvaOralClient({
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert("Seu navegador não suporta reconhecimento de voz direto. Digite sua resposta no campo.");
+      toast.warning("Seu navegador não suporta reconhecimento de voz direto. Digite sua resposta no campo.");
       return;
     }
 
@@ -324,7 +325,7 @@ export default function ProvaOralClient({
     setIsTimerActive(false);
 
     if (!transcript.trim()) {
-      alert("Por favor, responda à questão falando ao microfone ou digitando antes de encerrar.");
+      toast.warning("Por favor, responda à questão falando ao microfone ou digitando antes de encerrar.");
       return;
     }
 

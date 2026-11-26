@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { NEURAL_VOICE_OPTIONS } from "@/hooks/useAudioFlashcards";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import {
   Compass,
   BookOpen,
@@ -195,17 +196,14 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
   );
   const [isSubmittingWizard, setIsSubmittingWizard] = useState(false);
   const [isDeletingTrail, setIsDeletingTrail] = useState(false);
+  const [isDeleteTrailConfirmOpen, setIsDeleteTrailConfirmOpen] = useState(false);
 
-  async function handleDeleteTrail() {
+  async function handleConfirmDeleteTrail() {
     if (!trail) return;
-    const confirmed = window.confirm(
-      "Tem certeza que deseja excluir esta trilha? Você poderá criar uma nova trilha personalizada com IA a qualquer momento."
-    );
-    if (!confirmed) return;
-
     setIsDeletingTrail(true);
     const res = await deleteStudyTrailAction(trail.id);
     setIsDeletingTrail(false);
+    setIsDeleteTrailConfirmOpen(false);
 
     if (res.success) {
       setTrail(null);
@@ -1564,7 +1562,7 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
 
                 <button
                   type="button"
-                  onClick={handleDeleteTrail}
+                  onClick={() => setIsDeleteTrailConfirmOpen(true)}
                   disabled={isDeletingTrail}
                   className="px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                   title="Excluir esta trilha e começar do zero com IA"
@@ -3366,6 +3364,16 @@ export function TrilhasClient({ initialData }: TrilhasClientProps) {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={isDeleteTrailConfirmOpen}
+        title="Excluir Trilha de Estudos"
+        description="Tem certeza que deseja excluir esta trilha? Você poderá criar uma nova trilha personalizada a qualquer momento."
+        confirmText="Sim, excluir trilha"
+        isLoading={isDeletingTrail}
+        onConfirm={handleConfirmDeleteTrail}
+        onClose={() => setIsDeleteTrailConfirmOpen(false)}
+      />
     </div>
   );
 }

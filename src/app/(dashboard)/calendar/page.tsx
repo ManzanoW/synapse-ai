@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -191,7 +191,7 @@ export default function CalendarPage() {
             <div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider flex items-center gap-1.5">
                 <span>Revisões de Hoje</span>
-                <span className="text-[9px] text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[10px] text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
                   • Ver lista
                 </span>
               </p>
@@ -216,7 +216,7 @@ export default function CalendarPage() {
             <div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-extrabold tracking-wider flex items-center gap-1.5">
                 <span>Revisões Atrasadas</span>
-                <span className="text-[9px] text-rose-500 dark:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[10px] text-rose-500 dark:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity">
                   • Regularizar
                 </span>
               </p>
@@ -277,7 +277,7 @@ export default function CalendarPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 sm:mb-3">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 sm:mb-3">
             {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
               <span key={d}>{d}</span>
             ))}
@@ -328,7 +328,7 @@ export default function CalendarPage() {
                     </span>
 
                     {isToday && (
-                      <span className="hidden sm:inline-block text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest bg-indigo-500/20 px-1.5 py-0.2 rounded-full border border-indigo-500/30">
+                      <span className="hidden sm:inline-block text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest bg-indigo-500/20 px-1.5 py-0.2 rounded-full border border-indigo-500/30">
                         Hoje
                       </span>
                     )}
@@ -340,7 +340,7 @@ export default function CalendarPage() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
                       </span>
-                      <span className="text-[9px] sm:text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 truncate">
+                      <span className="text-[10px] sm:text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-300 truncate">
                         <span className="sm:hidden">{count}</span>
                         <span className="hidden sm:inline">
                           {count} {count === 1 ? "revisão" : "revisões"}
@@ -435,7 +435,7 @@ export default function CalendarPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1 space-y-0.5">
-                          <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block truncate">
+                          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block truncate">
                             {subjectName}
                           </span>
                           <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">

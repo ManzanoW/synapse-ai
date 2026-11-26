@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -227,7 +227,7 @@ export default function AchievementsPage() {
                 <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
                   Ranking Semanal de Alunos
                 </span>
-                <span className="rounded-full bg-cyan-500/20 px-2 py-0.2 text-[9px] font-bold text-cyan-300">
+                <span className="rounded-full bg-cyan-500/20 px-2 py-0.2 text-[10px] font-bold text-cyan-300">
                   AO VIVO
                 </span>
               </div>
@@ -260,7 +260,7 @@ export default function AchievementsPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="rounded-full border border-amber-500/40 bg-amber-500/20 px-2.5 py-0.5 text-[9px] font-mono font-bold text-amber-300 uppercase tracking-widest">
+                    <span className="rounded-full border border-amber-500/40 bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-mono font-bold text-amber-300 uppercase tracking-widest">
                       Última Conquista
                     </span>
                     <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
@@ -431,13 +431,13 @@ export default function AchievementsPage() {
 
                         <div className="flex items-center gap-1.5">
                           <span
-                            className={`rounded-full border px-2 py-0.5 font-mono text-[8px] font-bold tracking-widest ${rarity.border} ${rarity.bg} ${rarity.text}`}
+                            className={`rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold tracking-widest ${rarity.border} ${rarity.bg} ${rarity.text}`}
                           >
                             {rarity.label}
                           </span>
 
                           <span
-                            className={`rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold ${
+                            className={`rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold ${
                               badge.isUnlocked
                                 ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-300"
                                 : "border-slate-200 dark:border-white/5 bg-slate-200 dark:bg-slate-900 text-slate-500"

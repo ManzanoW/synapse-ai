@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
+import { toast } from "@/components/ui/toast";
 import {
   ArrowLeft,
   Search,
@@ -241,7 +242,7 @@ function PlannerContent() {
       }
       await refreshData();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Falha ao salvar");
+      toast.error(err instanceof Error ? err.message : "Falha ao salvar");
     }
   }
 
@@ -264,7 +265,7 @@ function PlannerContent() {
 
       await refreshData();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Falha na requisição");
+      toast.error(err instanceof Error ? err.message : "Falha na requisição");
     } finally {
       setSubmitting(false);
     }
@@ -280,7 +281,7 @@ function PlannerContent() {
 
       await refreshData();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Falha ao deletar tópico");
+      toast.error(err instanceof Error ? err.message : "Falha ao deletar tópico");
     }
   }
 
@@ -294,7 +295,7 @@ function PlannerContent() {
 
       await refreshData();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Falha ao deletar matéria");
+      toast.error(err instanceof Error ? err.message : "Falha ao deletar matéria");
     }
   }
 
